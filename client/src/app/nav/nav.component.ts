@@ -21,10 +21,6 @@ export class NavComponent {
     this.accountService.login(this.model).subscribe(
       (_) => {
         this.router.navigateByUrl('/members');
-      },
-      (response) => {
-        this.toastr.error(response.error);
-        console.log(response);
       }
     );
   }
