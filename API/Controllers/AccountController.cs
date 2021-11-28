@@ -1,24 +1,22 @@
 ﻿using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
-using API.Data;
 using API.DTOs;
 using API.Entities;
+using API.Extensions;
 using API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers
 {
     public class AccountController : BaseApiController
     {
-        private readonly DataContext _dbContext;
+        private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
 
-        public AccountController(DataContext dbContext, ITokenService tokenService)
+        public AccountController(IUserRepository userRepository, ITokenService tokenService)
         {
-            _dbContext = dbContext;
+            _userRepository = userRepository;
             _tokenService = tokenService;
         }
 
@@ -35,12 +33,12 @@ namespace API.Controllers
             var user = new AppUser
             {
                 UserName = registerDto.UserName,
-                PasswordHash = ComputePasswordHash(registerDto.Password, hmac),
+                PasswordHash = hmac.ComputePasswordHash(registerDto.Password),
                 PasswordSalt = hmac.Key
             };
 
-            _dbContext.Users.Add(user);
-            await _dbContext.SaveChangesAsync();
+            _userRepository.Add(user);
+            await _userRepository.SaveAllAsync();
 
             return new UserTokenDto 
             {
@@ -49,15 +47,10 @@ namespace API.Controllers
             };
         }
 
-        private static byte[] ComputePasswordHash(string password, HMACSHA512 hmac)
-        {
-            return hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-        }
-
         [HttpPost("login")]
         public async Task<ActionResult<UserTokenDto>> Login(LoginDto loginDto)
         {
-            var user = await FindUser(loginDto.UserName);
+            var user = await _userRepository.GetUserByUserNameAsync(loginDto.UserName);
             if (user == null)
             {
                 return Unauthorized("Username or password is incorrect");
@@ -65,7 +58,7 @@ namespace API.Controllers
 
             using var hmac = new HMACSHA512(user.PasswordSalt);
 
-            var hashData = ComputePasswordHash(loginDto.Password, hmac);
+            var hashData = hmac.ComputePasswordHash(loginDto.Password);
 
             if (!Enumerable.SequenceEqual(hashData, user.PasswordHash))
             {
@@ -81,13 +74,7 @@ namespace API.Controllers
 
         private async Task<bool> UserExists(string userName)
         {
-            return (await FindUser(userName)) != null;
-        }
-
-        private async Task<AppUser> FindUser(string userName)
-        {
-            var userNameLowerCase = userName.ToLower();
-            return await _dbContext.Users.FirstOrDefaultAsync(user => user.UserName.ToLower() == userNameLowerCase);
+            return (await _userRepository.GetUserByUserNameAsync(userName)) != null;
         }
     }
 }
