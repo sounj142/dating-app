@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using API.DTOs;
 using API.Interfaces;
@@ -32,6 +33,22 @@ namespace API.Controllers
         {
             var user = await _userRepository.GetUserByUserNameAsync(userName);
             return _mapper.Map<UserDto>(user);
+        }
+
+        [HttpPut]
+        public async Task<ActionResult> UpdateUser(UserUpdateDto userUpdateDto)
+        {
+            //await Task.Delay(1000);
+
+            var userName = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var user = await _userRepository.GetUserByUserNameAsync(userName);
+
+            _mapper.Map(userUpdateDto, user);
+            _userRepository.Update(user);
+            
+            if (!await _userRepository.SaveAllAsync()) return BadRequest("Failed to update user!");
+
+            return NoContent();
         }
     }
 }

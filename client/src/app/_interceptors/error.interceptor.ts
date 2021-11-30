@@ -36,7 +36,10 @@ export class ErrorInterceptor implements HttpInterceptor {
               this.process500Error(error);
               break;
             default:
-              this.toastr.error('Something unexpected went wrong', String(error.status));
+              this.toastr.error(
+                'Something unexpected went wrong',
+                String(error.status)
+              );
               console.log(error);
               break;
           }
@@ -71,7 +74,10 @@ export class ErrorInterceptor implements HttpInterceptor {
   }
 
   private process401Error(error: HttpErrorResponse) {
-    this.toastr.error(error.error || 'Unauthorized access!', String(error.status));
+    this.toastr.error(
+      error.error || 'Unauthorized access!',
+      String(error.status)
+    );
   }
 
   private process404Error() {

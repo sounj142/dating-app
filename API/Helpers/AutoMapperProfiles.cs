@@ -16,6 +16,7 @@ namespace API.Helpers
                     option => option.MapFrom(src => src.GetAge()));
 
             CreateMap<Photo, PhotoDto>();
+            CreateMap<UserUpdateDto, AppUser>();
         }
     }
 }
