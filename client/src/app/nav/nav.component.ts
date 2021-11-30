@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
+import { LoginModel } from '../_models/login-model';
 import { AccountService } from '../_services/account.service';
 
 @Component({
@@ -9,20 +10,14 @@ import { AccountService } from '../_services/account.service';
   styleUrls: ['./nav.component.css'],
 })
 export class NavComponent {
-  model: any = {};
+  model: LoginModel = {};
 
-  constructor(
-    public accountService: AccountService,
-    private router: Router,
-    private toastr: ToastrService
-  ) {}
+  constructor(public accountService: AccountService, private router: Router) {}
 
   login() {
-    this.accountService.login(this.model).subscribe(
-      (_) => {
-        this.router.navigateByUrl('/members');
-      }
-    );
+    this.accountService.login(this.model).subscribe((_) => {
+      this.router.navigateByUrl('/members');
+    });
   }
 
   logout() {

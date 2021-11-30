@@ -1,4 +1,18 @@
-export interface UserToken {
+import { Photo } from "./photo";
+
+export interface User {
+    id: number;
     userName: string;
-    token: string;
+    photoUrl: string;
+    age: number;
+    knownAs: string;
+    created: Date;
+    lastActive: Date;
+    gender: string;
+    introduction: string;
+    lookingFor: string;
+    interests: string;
+    city: string;
+    country: string;
+    photos: Photo[];
 }
