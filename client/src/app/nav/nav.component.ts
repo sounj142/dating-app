@@ -1,7 +1,9 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { map } from 'rxjs/operators';
+import { environment } from 'src/environments/environment';
 import { LoginModel } from '../_models/login-model';
+import { UserToken } from '../_models/user-token';
 import { AccountService } from '../_services/account.service';
 
 @Component({
@@ -23,5 +25,9 @@ export class NavComponent {
   logout() {
     this.accountService.logout();
     this.router.navigateByUrl('/');
+  }
+
+  getUserPhotoUrl(user: UserToken) {
+    return user?.photoUrl || environment.defaultUserPhoto
   }
 }

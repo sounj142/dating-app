@@ -40,14 +40,18 @@ export class AccountService {
     this.currentUserSource.next(user);
   }
 
+  saveUserTokenToLocalStorage(user: UserToken) {
+    localStorage.setItem('user', JSON.stringify(user));
+    this.currentUserSource.next(user);
+  }
+
   private chainPipeToLoginOrRegisterRequest(
     observable: Observable<Object>
   ): Observable<UserToken> {
     return observable.pipe(
       map((user: UserToken) => {
         if (user) {
-          localStorage.setItem('user', JSON.stringify(user));
-          this.currentUserSource.next(user);
+          this.saveUserTokenToLocalStorage(user);
         }
         return user;
       })

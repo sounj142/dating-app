@@ -4,7 +4,6 @@ import { of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { User } from '../_models/user';
-import { UserUpdate } from '../_models/user-update';
 
 @Injectable({
   providedIn: 'root',
@@ -56,5 +55,13 @@ export class UsersService {
         return value;
       })
     );
+  }
+
+  setMainPhoto(photoId: number) {
+    return this.http.put(`${this.baseUrl}users/set-main-photo/${photoId}`, undefined);
+  }
+
+  deletePhoto(photoId: number) {
+    return this.http.delete(`${this.baseUrl}users/delete-photo/${photoId}`);
   }
 }
