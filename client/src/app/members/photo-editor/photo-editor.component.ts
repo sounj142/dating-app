@@ -53,8 +53,10 @@ export class PhotoEditorComponent implements OnInit {
         return;
       }
 
-      const photo = JSON.parse(response);
+      const photo: Photo = JSON.parse(response);
       this.user.photos.push(photo);
+
+      if (photo.isMain) this.changeMainPhotoUrl(photo);
     };
 
     this.accountService.currentUser$.pipe(take(1)).subscribe((userToken) => {
@@ -67,19 +69,23 @@ export class PhotoEditorComponent implements OnInit {
     this.usersService.setMainPhoto(photo.id).subscribe(() => {
       this.user.photos.forEach((p) => (p.isMain = false));
       photo.isMain = true;
-      this.user.photoUrl = photo.url;
-
-      // set photo in User token
-      this.accountService.currentUser$.pipe(take(1)).subscribe((userToken) => {
-        userToken.photoUrl = photo.url;
-        this.accountService.saveUserTokenToLocalStorage(userToken);
-      });
+      this.changeMainPhotoUrl(photo);
     });
   }
 
   deletePhoto(photo: Photo) {
     this.usersService.deletePhoto(photo.id).subscribe(() => {
       this.user.photos = this.user.photos.filter((p) => p.id !== photo.id);
+    });
+  }
+
+  private changeMainPhotoUrl(photo: Photo) {
+    this.user.photoUrl = photo.url;
+
+    // set photo in User token
+    this.accountService.currentUser$.pipe(take(1)).subscribe((userToken) => {
+      userToken.photoUrl = photo.url;
+      this.accountService.saveUserTokenToLocalStorage(userToken);
     });
   }
 }

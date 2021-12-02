@@ -5,6 +5,7 @@ using API.DTOs;
 using API.Entities;
 using API.Extensions;
 using API.Interfaces;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
@@ -13,11 +14,13 @@ namespace API.Controllers
     {
         private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
+        private readonly IMapper _mapper;
 
-        public AccountController(IUserRepository userRepository, ITokenService tokenService)
+        public AccountController(IUserRepository userRepository, ITokenService tokenService, IMapper mapper)
         {
             _userRepository = userRepository;
             _tokenService = tokenService;
+            _mapper = mapper;
         }
 
         [HttpPost("register")]
@@ -30,21 +33,19 @@ namespace API.Controllers
 
             using var hmac = new HMACSHA512();
 
-            var user = new AppUser
-            {
-                UserName = registerDto.UserName,
-                PasswordHash = hmac.ComputePasswordHash(registerDto.Password),
-                PasswordSalt = hmac.Key
-            };
+            var user = _mapper.Map<AppUser>(registerDto);
+            user.PasswordHash = hmac.ComputePasswordHash(registerDto.Password);
+            user.PasswordSalt = hmac.Key;
 
             _userRepository.Add(user);
             await _userRepository.SaveAllAsync();
 
-            return new UserTokenDto 
+            return new UserTokenDto
             {
                 UserName = user.UserName,
                 Token = _tokenService.CreateToken(user),
-                PhotoUrl = null
+                PhotoUrl = null,
+                KnownAs = user.KnownAs
             };
         }
 
@@ -70,7 +71,8 @@ namespace API.Controllers
             {
                 UserName = user.UserName,
                 Token = _tokenService.CreateToken(user),
-                PhotoUrl = user.Photos.FirstOrDefault(p => p.IsMain)?.Url
+                PhotoUrl = user.Photos.FirstOrDefault(p => p.IsMain)?.Url,
+                KnownAs = user.KnownAs
             };
         }
 

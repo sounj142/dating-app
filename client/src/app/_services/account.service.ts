@@ -4,7 +4,6 @@ import { map } from 'rxjs/operators';
 import { UserToken } from '../_models/user-token';
 import { Observable, ReplaySubject } from 'rxjs';
 import { LoginModel } from '../_models/login-model';
-import { RegisterModel } from '../_models/register-model';
 import { environment } from 'src/environments/environment';
 
 @Injectable({
@@ -24,7 +23,7 @@ export class AccountService {
     );
   }
 
-  register(model: RegisterModel) {
+  register(model) {
     return this.chainPipeToLoginOrRegisterRequest(
       this.http.post(`${this.baseUrl}account/register`, model)
     );

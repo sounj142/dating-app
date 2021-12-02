@@ -9,6 +9,7 @@ import { MemberDetailComponent } from './members/member-detail/member-detail.com
 import { MemberEditComponent } from './members/member-edit/member-edit.component';
 import { MemberListComponent } from './members/member-list/member-list.component';
 import { MessagesComponent } from './messages/messages.component';
+import { RegisterComponent } from './register/register.component';
 import { AuthGuard } from './_router-guards/auth.guard';
 import { PreventUnsavedChangesGuard } from './_router-guards/prevent-unsaved-changes.guard';
 
@@ -30,6 +31,7 @@ const routes: Routes = [
       { path: 'messages', component: MessagesComponent },
     ],
   },
+  { path: 'register', component: RegisterComponent },
   { path: 'not-found', component: NotFoundComponent },
   { path: 'server-error', component: ServerErrorComponent },
   { path: 'errors', component: TestErrorsComponent },
