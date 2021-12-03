@@ -17,9 +17,10 @@ namespace API.Extensions
         {
             services.AddDbContext<DataContext>(options => 
             {
-                options.UseSqlite(configuration.GetConnectionString("DefaultConnection"));
+                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
             });
             services.AddAutoMapper(typeof(AutoMapperProfiles).Assembly);
+            services.AddScoped<LogUserActivityActionFilter>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IPhotoService, PhotoService>();
             services.AddScoped<IUserRepository, UserRepository>();

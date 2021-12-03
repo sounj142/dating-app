@@ -6,35 +6,32 @@ namespace LanguageFeaturesTests
     {
         static void Main(string[] args)
         {
-            var dob = new DateTimeOffset(year: 1986, month: 11, day: 28, 
-                hour: 0, minute: 0, second: 0, offset: new TimeSpan(-9, 0, 0));
+
+            //// Console.WriteLine(RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
+
+            //// Get time in local time zone 
+            //DateTime thisTime = DateTime.Now;
+            //Console.WriteLine("Time in {0} zone: {1}", TimeZoneInfo.Local.IsDaylightSavingTime(thisTime) ?
+            //                  TimeZoneInfo.Local.DaylightName : TimeZoneInfo.Local.StandardName, thisTime);
+            //Console.WriteLine("   UTC Time: {0}", TimeZoneInfo.ConvertTimeToUtc(thisTime, TimeZoneInfo.Local));
+            //// Get Tokyo Standard Time zone
+            //TimeZoneInfo tst = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+            //DateTime tstTime = TimeZoneInfo.ConvertTime(thisTime, TimeZoneInfo.Local, tst);
+            //Console.WriteLine("Time in {0} zone: {1}", tst.IsDaylightSavingTime(tstTime) ?
+            //                  tst.DaylightName : tst.StandardName, tstTime);
+            //Console.WriteLine("   UTC Time: {0}", TimeZoneInfo.ConvertTimeToUtc(tstTime, tst));
 
 
-            var now = DateTimeOffset.Now.ToOffset(dob.Offset);
+            //var d = DateTime.Now.Date;
+            //Console.WriteLine(DateTime.Now.Date.Kind);
 
-            Console.WriteLine(dob);
-            Console.WriteLine(now);
+            var date = new DateTime(2020, 2, 28);
+            var date_18 = date.AddYears(-18);
 
-            Console.WriteLine(dob.Date);
-            Console.WriteLine(now.Date);
+            Console.WriteLine(date);
+            Console.WriteLine(date_18);
 
-            Console.WriteLine(CalculateAge(dob));
-        }
 
-        static int CalculateAge(DateTimeOffset dateOfBirth)
-        {
-            var now = DateTimeOffset.Now.ToOffset(dateOfBirth.Offset);
-
-            var today = now.Date;
-            var dbo = dateOfBirth.Date;
-
-            // Calculate the age.
-            var age = today.Year - dbo.Year;
-
-            // Go back to the year in which the person was born in case of a leap year
-            if (dbo.Date > today.AddYears(-age)) age--;
-
-            return age;
         }
     }
 }

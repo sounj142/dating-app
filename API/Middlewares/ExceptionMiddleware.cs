@@ -1,10 +1,10 @@
 ﻿using API.Errors;
+using API.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace API.Middlewares
@@ -43,8 +43,7 @@ namespace API.Middlewares
                     details: _environment.IsDevelopment() ? $"{ex.Message} {ex.StackTrace}" : null
                 );
 
-                var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-                var responseString = JsonSerializer.Serialize(exceptionResponse, options);
+                var responseString = exceptionResponse.SerializeCamelCase();
 
                 httpContext.Response.StatusCode = statusCode;
                 httpContext.Response.ContentType = "application/json; charset=utf-8";

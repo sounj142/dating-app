@@ -6,7 +6,8 @@ export const environment = {
   production: false,
   apiUrl: 'https://localhost:44312/api/',
   defaultUserPhoto: './assets/user.png',
-  fakeDelayTime: 1000,
+  fakeDelayTime: 500,
+  cacheTime: 10, // minutes
 };
 
 /*

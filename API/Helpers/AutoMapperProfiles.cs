@@ -1,6 +1,7 @@
 ﻿using API.DTOs;
 using API.Entities;
 using AutoMapper;
+using System;
 using System.Linq;
 
 namespace API.Helpers
@@ -17,7 +18,11 @@ namespace API.Helpers
 
             CreateMap<Photo, PhotoDto>();
             CreateMap<UserUpdateDto, AppUser>();
-            CreateMap<RegisterDto, AppUser>();
+            CreateMap<RegisterDto, AppUser>()
+                .ForMember(dest => dest.DateOfBirth,
+                    option => option.MapFrom(src => 
+                    new DateTime(src.DateOfBirth.Year, src.DateOfBirth.Month, src.DateOfBirth.Day))
+                );
         }
     }
 }

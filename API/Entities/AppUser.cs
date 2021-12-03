@@ -1,6 +1,7 @@
 ﻿using API.Extensions;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace API.Entities
 {
@@ -10,7 +11,9 @@ namespace API.Entities
         public string UserName { get; set; }
         public byte[] PasswordHash { get; set; }
         public byte[] PasswordSalt { get; set; }
-        public DateTimeOffset DateOfBirth { get; set; }
+
+        [DataType(DataType.Date)]
+        public DateTime DateOfBirth { get; set; }
         public string KnownAs { get; set; }
         public DateTimeOffset Created { get; set; } = DateTimeOffset.Now;
         public DateTimeOffset LastActive { get; set; } = DateTimeOffset.Now;

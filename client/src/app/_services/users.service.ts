@@ -1,64 +1,127 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { of } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { CacheItem } from '../_models/cache-item';
+import { PaginatedResult } from '../_models/pagination';
 import { User } from '../_models/user';
+import { UserParams } from '../_models/userParams';
 
 @Injectable({
   providedIn: 'root',
 })
 export class UsersService {
   private baseUrl = environment.apiUrl;
-  private users: User[];
+  private memberCache = {};
+  private cachedUserParams: UserParams = undefined;
 
   constructor(private http: HttpClient) {}
 
-  getUsers() {
-    if (this.users) {
-      return of(this.users);
+  private getCacheKey(p: any) {
+    return Object.values(p).join('-');
+  }
+
+  private isValidCachedItem<T>(item: CacheItem<T>): boolean {
+    return item && item.timeExpired > new Date();
+  }
+
+  private cloneObject<T>(obj: T): T {
+    return JSON.parse(JSON.stringify(obj));
+  }
+
+  saveUserParams(userParams: UserParams) {
+    this.cachedUserParams = this.cloneObject(userParams);
+  }
+
+  loadUserParams() {
+    return this.cachedUserParams ? this.cloneObject(this.cachedUserParams) : undefined;
+  }
+
+  clearMemberCache() {
+    this.memberCache = {};
+  }
+
+  getUsers(userParams: UserParams): Observable<PaginatedResult<User>> {
+    const key = this.getCacheKey(userParams);
+    const cacheItem: CacheItem<PaginatedResult<User>> = this.memberCache[key];
+
+    if (this.isValidCachedItem(cacheItem)) {
+      return of(this.cloneObject(cacheItem.data));
     }
-    return this.http.get<User[]>(`${this.baseUrl}users`).pipe(
-      map((users) => {
-        if (users) {
-          this.users = users;
-        }
-        return users;
+
+    return this.getPaginationResult<User, UserParams>(
+      `${this.baseUrl}users`,
+      userParams
+    ).pipe(
+      map((result) => {
+        const timeExpired = new Date();
+        timeExpired.setMinutes(
+          timeExpired.getMinutes() + environment.cacheTime
+        );
+
+        this.memberCache[key] = {
+          data: this.cloneObject(result),
+          timeExpired: timeExpired,
+        };
+        return result;
       })
     );
   }
 
-  getUser(userName: string) {
-    if (this.users) {
-      const userNameLowerCase = userName?.toLowerCase();
-      const user = this.users.find(
-        (u) => u.userName.toLowerCase() === userNameLowerCase
-      );
-      if (user) {
-        return of(user);
+  private getPaginationResult<T, TParams>(
+    url,
+    userParams: TParams
+  ): Observable<PaginatedResult<T>> {
+    let params = new HttpParams();
+    if (userParams) {
+      for (const key in userParams) {
+        params = params.append(key, String(userParams[key]));
       }
     }
+    return this.http
+      .get<T[]>(url, {
+        observe: 'response',
+        params,
+      })
+      .pipe(
+        map((response) => {
+          const paginatedResult = new PaginatedResult<T>();
+          paginatedResult.data = response.body;
+          if (response.headers.get('Pagination')) {
+            paginatedResult.pagination = JSON.parse(
+              response.headers.get('Pagination')
+            );
+          }
+          return paginatedResult;
+        })
+      );
+  }
+
+  getUser(userName: string) {
+    for (const key in this.memberCache) {
+      const cacheItem: CacheItem<PaginatedResult<User>> = this.memberCache[key];
+
+      if (this.isValidCachedItem(cacheItem)) {
+        const user = cacheItem.data.data.find((u) => u.userName === userName);
+        if (user) {
+          return of(this.cloneObject(user));
+        }
+      }
+    }
+
     return this.http.get<User>(`${this.baseUrl}users/${userName}`);
   }
 
   updateUser(user: User) {
-    return this.http.put(`${this.baseUrl}users`, user).pipe(
-      map((value) => {
-        if (this.users) {
-          const index = this.users.findIndex(
-            (u) => u.userName === user.userName
-          );
-          if (index >= 0) {
-            this.users[index] = user;
-          }
-        }
-        return value;
-      })
-    );
+    return this.http.put(`${this.baseUrl}users`, user);
   }
 
   setMainPhoto(photoId: number) {
-    return this.http.put(`${this.baseUrl}users/set-main-photo/${photoId}`, undefined);
+    return this.http.put(
+      `${this.baseUrl}users/set-main-photo/${photoId}`,
+      undefined
+    );
   }
 
   deletePhoto(photoId: number) {

@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using API.DTOs;
 using API.Entities;
+using API.Extensions;
+using API.Helpers;
 using API.Interfaces;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
@@ -26,9 +28,16 @@ namespace API.Controllers
         }
 
         [HttpGet]
-        public async Task<IList<UserDto>> GetUsers()
+        public async Task<IList<UserDto>> GetUsers([FromQuery] UserParams userParams)
         {
-            var users = await _userRepository.GetUsersAsync();
+            var currentUser = await _userRepository.GetCurrentUserAsync(User);
+            if (string.IsNullOrEmpty(userParams.Gender))
+                userParams.Gender = currentUser.Gender == "male" ? "female" : "male";
+
+            var users = await _userRepository.GetUsersAsync(userParams.CurrentPage, userParams.PageSize, currentUser.UserName,
+                userParams.Gender, userParams.MinAge, userParams.MaxAge, userParams.OrderBy);
+           
+            Response.AddPaginationHeader(users);
             return _mapper.Map<IList<UserDto>>(users);
         }
 
@@ -42,7 +51,7 @@ namespace API.Controllers
         [HttpPut]
         public async Task<ActionResult> UpdateUser(UserUpdateDto userUpdateDto)
         {
-            var user = await GetCurrentUser(_userRepository);
+            var user = await _userRepository.GetCurrentUserAsync(User);
 
             _mapper.Map(userUpdateDto, user);
             _userRepository.Update(user);
@@ -60,7 +69,7 @@ namespace API.Controllers
             if (uploadResult.Error != null) return BadRequest(uploadResult.Error.Message);
             if (string.IsNullOrEmpty(uploadResult.PublicId)) return BadRequest("Failed to upload photo");
 
-            var user = await GetCurrentUser(_userRepository);
+            var user = await _userRepository.GetCurrentUserAsync(User);
             var photo = new Photo
             {
                 PublicId = uploadResult.PublicId,
@@ -77,7 +86,7 @@ namespace API.Controllers
         [HttpPut("set-main-photo/{photoId}")]
         public async Task<ActionResult> SetMainPhoto(int photoId)
         {
-            var user = await GetCurrentUser(_userRepository);
+            var user = await _userRepository.GetCurrentUserAsync(User);
             var photo = user.Photos.FirstOrDefault(p => p.Id == photoId);
 
             if (photo == null) return BadRequest("Photo does not exist!");
@@ -98,7 +107,7 @@ namespace API.Controllers
         [HttpDelete("delete-photo/{photoId}")]
         public async Task<ActionResult> DeletePhoto(int photoId)
         {
-            var user = await GetCurrentUser(_userRepository);
+            var user = await _userRepository.GetCurrentUserAsync(User);
             var photo = user.Photos.FirstOrDefault(p => p.Id == photoId);
 
             if (photo == null) return NotFound("Photo does not exist!");

@@ -53,8 +53,6 @@ namespace API
 
             app.UseRouting();
 
-            // UseCors here ?
-
             app.UseAuthentication();
             app.UseAuthorization();
 

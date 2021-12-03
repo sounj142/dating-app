@@ -5,6 +5,7 @@ import { environment } from 'src/environments/environment';
 import { LoginModel } from '../_models/login-model';
 import { UserToken } from '../_models/user-token';
 import { AccountService } from '../_services/account.service';
+import { UsersService } from '../_services/users.service';
 
 @Component({
   selector: 'app-nav',
@@ -14,10 +15,15 @@ import { AccountService } from '../_services/account.service';
 export class NavComponent {
   model: LoginModel = {};
 
-  constructor(public accountService: AccountService, private router: Router) {}
+  constructor(
+    public accountService: AccountService,
+    private router: Router,
+    private usersService: UsersService
+  ) {}
 
   login() {
     this.accountService.login(this.model).subscribe((_) => {
+      this.usersService.clearMemberCache();
       this.router.navigateByUrl('/members');
     });
   }
@@ -28,6 +34,6 @@ export class NavComponent {
   }
 
   getUserPhotoUrl(user: UserToken) {
-    return user?.photoUrl || environment.defaultUserPhoto
+    return user?.photoUrl || environment.defaultUserPhoto;
   }
 }

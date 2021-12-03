@@ -7,9 +7,9 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
-import { formatDateWithLocalTimezone } from '../_fn/date-function';
+import { formatDateOnlyToString } from '../_fn/date-function';
 import { AccountService } from '../_services/account.service';
+import { UsersService } from '../_services/users.service';
 
 @Component({
   selector: 'app-register',
@@ -23,9 +23,9 @@ export class RegisterComponent implements OnInit {
 
   constructor(
     private accountService: AccountService,
-    private toastr: ToastrService,
     private formBuilder: FormBuilder,
-    private router: Router
+    private router: Router,
+    private usersService: UsersService
   ) {}
 
   ngOnInit(): void {
@@ -70,12 +70,13 @@ export class RegisterComponent implements OnInit {
     const data = Object.assign({}, this.registerForm.value);
 
     if (data.dateOfBirth)
-      data.dateOfBirth = formatDateWithLocalTimezone(data.dateOfBirth);
+      data.dateOfBirth = formatDateOnlyToString(data.dateOfBirth);
     else data.dateOfBirth = undefined;
 
     this.accountService.register(data).subscribe(
       () => {
         this.serverValidationErrors = null;
+        this.usersService.clearMemberCache();
         this.router.navigateByUrl('/members');
       },
       (response) => {

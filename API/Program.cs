@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace API
 {
@@ -15,10 +16,19 @@ namespace API
         {
             var host = CreateHostBuilder(args).Build();
 
+            InitializeStandardTimeZone(host);
+
             await SeedOrMigrationDatabase(host);
 
             await host.RunAsync();
         }
+
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+           Host.CreateDefaultBuilder(args)
+               .ConfigureWebHostDefaults(webBuilder =>
+               {
+                   webBuilder.UseStartup<Startup>();
+               });
 
         private static async Task SeedOrMigrationDatabase(IHost host)
         {
@@ -47,11 +57,11 @@ namespace API
             }
         }
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
+        private static void InitializeStandardTimeZone(IHost host)
+        {
+            using var scope = host.Services.CreateScope();
+            var configuration = scope.ServiceProvider.GetService<IConfiguration>();
+            SystemInfo.ReadStandardTimezoneFromAppseting(configuration);
+        }
     }
 }
