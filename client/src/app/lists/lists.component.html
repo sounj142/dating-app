@@ -1,1 +1,55 @@
-<p>lists works!</p>
+<ng-container *ngIf="paginatedResult$ | async as paginatedResult">
+  <div class="text-center mt-3">
+    <h2>
+      {{
+        likesParams.predicate === "Liked"
+          ? "Members I like"
+          : "Members who like me"
+      }}
+    </h2>
+  </div>
+
+  <div class="container mt-3">
+    <div class="row">
+      <div class="btn-group" name="predicate">
+        <button
+          class="btn btn-primary"
+          btnRadio="Liked"
+          [(ngModel)]="likesParams.predicate"
+          (click)="changePredicate()"
+        >
+          Members I like
+        </button>
+        <button
+          class="btn btn-primary"
+          btnRadio="LikedBy"
+          [(ngModel)]="likesParams.predicate"
+          (click)="changePredicate()"
+        >
+          Members who like me
+        </button>
+      </div>
+    </div>
+
+    <div class="row mt-3">
+      <div class="col-2" *ngFor="let member of paginatedResult.data">
+        <app-member-card [user]="member"></app-member-card>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-center" *ngIf="paginatedResult.pagination">
+    <pagination
+      [boundaryLinks]="true"
+      [totalItems]="paginatedResult.pagination.totalCount"
+      [itemsPerPage]="paginatedResult.pagination.pageSize"
+      [(ngModel)]="paginatedResult.pagination.currentPage"
+      (pageChanged)="pageChanged($event)"
+      previousText="&lsaquo;"
+      nextText="&rsaquo;"
+      firstText="&laquo;"
+      lastText="&raquo;"
+    >
+    </pagination>
+  </div>
+</ng-container>

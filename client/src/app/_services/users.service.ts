@@ -6,7 +6,8 @@ import { environment } from 'src/environments/environment';
 import { CacheItem } from '../_models/cache-item';
 import { PaginatedResult } from '../_models/pagination';
 import { User } from '../_models/user';
-import { UserParams } from '../_models/userParams';
+import { UserLiked } from '../_models/user-liked';
+import { LikesParams, UserParams } from '../_models/userParams';
 
 @Injectable({
   providedIn: 'root',
@@ -35,7 +36,9 @@ export class UsersService {
   }
 
   loadUserParams() {
-    return this.cachedUserParams ? this.cloneObject(this.cachedUserParams) : undefined;
+    return this.cachedUserParams
+      ? this.cloneObject(this.cachedUserParams)
+      : undefined;
   }
 
   clearMemberCache() {
@@ -126,5 +129,16 @@ export class UsersService {
 
   deletePhoto(photoId: number) {
     return this.http.delete(`${this.baseUrl}users/delete-photo/${photoId}`);
+  }
+
+  addLike(userName: string) {
+    return this.http.post(`${this.baseUrl}likes/${userName}`, undefined);
+  }
+
+  getLikes(likesParams: LikesParams) {
+    return this.getPaginationResult<UserLiked, LikesParams>(
+      `${this.baseUrl}likes`,
+      likesParams
+    );
   }
 }

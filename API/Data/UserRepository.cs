@@ -32,7 +32,7 @@ namespace API.Data
 
         public async Task<AppUser> GetCurrentUserAsync(ClaimsPrincipal claimsPrincipal)
         {
-            var userId = int.Parse(claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var userId = claimsPrincipal.GetUserId();
             return await GetUserByIdAsync(userId);
         }
 
