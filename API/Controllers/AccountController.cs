@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using API.DTOs;
 using API.Entities;
 using API.Extensions;
+using API.Helpers;
 using API.Interfaces;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
@@ -15,12 +16,15 @@ namespace API.Controllers
         private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
         private readonly IMapper _mapper;
+        private readonly ClientInformation _clientInformation;
 
-        public AccountController(IUserRepository userRepository, ITokenService tokenService, IMapper mapper)
+        public AccountController(IUserRepository userRepository, ITokenService tokenService, 
+            IMapper mapper, ClientInformation clientInformation)
         {
             _userRepository = userRepository;
             _tokenService = tokenService;
             _mapper = mapper;
+            _clientInformation = clientInformation;
         }
 
         [HttpPost("register")]
@@ -36,6 +40,7 @@ namespace API.Controllers
             var user = _mapper.Map<AppUser>(registerDto);
             user.PasswordHash = hmac.ComputePasswordHash(registerDto.Password);
             user.PasswordSalt = hmac.Key;
+            user.Created = _clientInformation.GetClientNow();
 
             _userRepository.Add(user);
             await _userRepository.SaveAllAsync();

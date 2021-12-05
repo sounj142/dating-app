@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
 import { PaginatedResult } from '../_models/pagination';
 import { UserLiked } from '../_models/user-liked';
-import { LikesParams } from '../_models/userParams';
+import { LikesParams } from '../_models/user-params';
 import { UsersService } from '../_services/users.service';
 
 @Component({

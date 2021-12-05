@@ -21,10 +21,12 @@ namespace API.Extensions
             });
             services.AddAutoMapper(typeof(AutoMapperProfiles).Assembly);
             services.AddScoped<LogUserActivityActionFilter>();
+            services.AddScoped<ClientInformation>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IPhotoService, PhotoService>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<ILikesRepository, LikesRepository>();
+            services.AddScoped<IMessageRepository, MessageRepository>();
 
             services.Configure<CloudinarySettings>(configuration.GetSection("CloudinarySettings"));
 

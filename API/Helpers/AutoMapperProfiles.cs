@@ -26,7 +26,6 @@ namespace API.Helpers
                     new DateTime(src.DateOfBirth.Year, src.DateOfBirth.Month, src.DateOfBirth.Day))
                 );
 
-            // define this mapping to use in EF ProjectTo<>() only
             CreateMap<AppUser, LikeDto>()
                 .ForMember(dest => dest.PhotoUrl,
                     option => option.MapFrom(src => src.Photos.FirstOrDefault(p => p.IsMain).Url))
@@ -34,6 +33,13 @@ namespace API.Helpers
                     option => option.MapFrom(src => src.DateOfBirth.CalculateAge()))
                 .ForMember(dest => dest.UserId,
                     option => option.MapFrom(src => src.Id));
+
+            CreateMap<Message, MessageDto>()
+                .ForMember(dest => dest.SenderPhotoUrl,
+                    option => option.MapFrom(src => src.Sender.Photos.FirstOrDefault(p => p.IsMain).Url))
+                .ForMember(dest => dest.RecipientPhotoUrl,
+                    option => option.MapFrom(src => src.Recipient.Photos.FirstOrDefault(p => p.IsMain).Url));
+
         }
     }
 }

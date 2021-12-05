@@ -1,1 +1,90 @@
-<p>messages works!</p>
+<ng-container *ngIf="paginatedResult$ | async as paginatedResult">
+  <div class="row mb-4">
+    <div class="btn-group" name="container">
+      <button
+        class="btn btn-primary"
+        btnRadio="Unread"
+        [(ngModel)]="params.container"
+        (click)="containerChanged()"
+        type="button"
+      >
+        <i class="fa fa-envelope"></i>
+        Unread
+      </button>
+
+      <button
+        class="btn btn-primary"
+        btnRadio="Inbox"
+        [(ngModel)]="params.container"
+        (click)="containerChanged()"
+        type="button"
+      >
+        <i class="fa fa-envelope-open"></i>
+        Inbox
+      </button>
+
+      <button
+        class="btn btn-primary"
+        btnRadio="Outbox"
+        [(ngModel)]="params.container"
+        (click)="containerChanged()"
+        type="button"
+      >
+        <i class="fa fa-paper-plane"></i>
+        Outbox
+      </button>
+    </div>
+  </div>
+
+  <div class="row" *ngIf="paginatedResult.data.length === 0">
+    <h3>No messages</h3>
+  </div>
+
+  <div class="row" *ngIf="paginatedResult.data.length">
+    <table class="table table-hover" style="cursor: pointer">
+      <tr>
+        <th style="width: 40%">Message</th>
+        <th style="width: 20%">From / To</th>
+        <th style="width: 20%">Sent / Received</th>
+        <th style="width: 20%"></th>
+      </tr>
+      <tr
+        *ngFor="let message of paginatedResult.data"
+        routerLink="{{ getNavigateLink(message) }}"
+        [queryParams]="{ tab: 3 }"
+      >
+        <td>{{ message.content }}</td>
+        <td>
+          <div>
+            <img
+              src="{{ getPhotoUrl(message) }}"
+              alt="{{ getDisplayName(message) }}"
+              class="img-circle rounded-circle mr-2"
+            />
+            <strong>{{ getDisplayName(message) | titlecase }}</strong>
+          </div>
+        </td>
+
+        <td>{{ message.messageSent | timeago }}</td>
+        <td>
+          <button class="btn btn-danger" type="button" (click)="deleteMessage($event, message)">Delete</button>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="d-flex justify-content-center" *ngIf="paginatedResult.pagination">
+    <pagination
+      [boundaryLinks]="true"
+      [totalItems]="paginatedResult.pagination.totalCount"
+      [itemsPerPage]="paginatedResult.pagination.pageSize"
+      [(ngModel)]="paginatedResult.pagination.currentPage"
+      (pageChanged)="pageChanged($event)"
+      previousText="&lsaquo;"
+      nextText="&rsaquo;"
+      firstText="&laquo;"
+      lastText="&raquo;"
+    >
+    </pagination>
+  </div>
+</ng-container>

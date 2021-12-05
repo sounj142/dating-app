@@ -41,6 +41,12 @@ export class PhotoEditorComponent implements OnInit {
       removeAfterUpload: true,
       autoUpload: false,
       maxFileSize: 10 * 1024 * 1024,
+      headers: [
+        {
+          name: 'ClientTimeZoneOffset',
+          value: new Date().getTimezoneOffset().toString(),
+        },
+      ],
     });
 
     this.uploader.onAfterAddingFile = (file) => {

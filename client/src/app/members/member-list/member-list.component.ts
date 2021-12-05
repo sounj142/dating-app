@@ -4,7 +4,7 @@ import { mergeMap, take } from 'rxjs/operators';
 import { PaginatedResult } from 'src/app/_models/pagination';
 import { User } from 'src/app/_models/user';
 import { UserToken } from 'src/app/_models/user-token';
-import { UserParams } from 'src/app/_models/userParams';
+import { UserParams } from 'src/app/_models/user-params';
 import { AccountService } from 'src/app/_services/account.service';
 import { UsersService } from 'src/app/_services/users.service';
 

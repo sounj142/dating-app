@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -7,17 +7,19 @@ import { CacheItem } from '../_models/cache-item';
 import { PaginatedResult } from '../_models/pagination';
 import { User } from '../_models/user';
 import { UserLiked } from '../_models/user-liked';
-import { LikesParams, UserParams } from '../_models/userParams';
+import { LikesParams, UserParams } from '../_models/user-params';
+import { BaseService } from './base.service';
 
 @Injectable({
   providedIn: 'root',
 })
-export class UsersService {
-  private baseUrl = environment.apiUrl;
+export class UsersService extends BaseService {
   private memberCache = {};
   private cachedUserParams: UserParams = undefined;
 
-  constructor(private http: HttpClient) {}
+  constructor(http: HttpClient) {
+    super(http);
+  }
 
   private getCacheKey(p: any) {
     return Object.values(p).join('-');
@@ -25,10 +27,6 @@ export class UsersService {
 
   private isValidCachedItem<T>(item: CacheItem<T>): boolean {
     return item && item.timeExpired > new Date();
-  }
-
-  private cloneObject<T>(obj: T): T {
-    return JSON.parse(JSON.stringify(obj));
   }
 
   saveUserParams(userParams: UserParams) {
@@ -70,35 +68,6 @@ export class UsersService {
         return result;
       })
     );
-  }
-
-  private getPaginationResult<T, TParams>(
-    url,
-    userParams: TParams
-  ): Observable<PaginatedResult<T>> {
-    let params = new HttpParams();
-    if (userParams) {
-      for (const key in userParams) {
-        params = params.append(key, String(userParams[key]));
-      }
-    }
-    return this.http
-      .get<T[]>(url, {
-        observe: 'response',
-        params,
-      })
-      .pipe(
-        map((response) => {
-          const paginatedResult = new PaginatedResult<T>();
-          paginatedResult.data = response.body;
-          if (response.headers.get('Pagination')) {
-            paginatedResult.pagination = JSON.parse(
-              response.headers.get('Pagination')
-            );
-          }
-          return paginatedResult;
-        })
-      );
   }
 
   getUser(userName: string) {

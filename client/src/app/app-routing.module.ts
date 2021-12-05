@@ -10,6 +10,7 @@ import { MemberEditComponent } from './members/member-edit/member-edit.component
 import { MemberListComponent } from './members/member-list/member-list.component';
 import { MessagesComponent } from './messages/messages.component';
 import { RegisterComponent } from './register/register.component';
+import { MemberDetailedResolver } from './_resolvers/member-detailed.resolver';
 import { AuthGuard } from './_router-guards/auth.guard';
 import { PreventUnsavedChangesGuard } from './_router-guards/prevent-unsaved-changes.guard';
 
@@ -21,7 +22,7 @@ const routes: Routes = [
     canActivate: [AuthGuard],
     children: [
       { path: 'members', component: MemberListComponent },
-      { path: 'members/:userName', component: MemberDetailComponent },
+      { path: 'members/:userName', component: MemberDetailComponent, resolve: { user: MemberDetailedResolver } },
       {
         path: 'member/edit',
         component: MemberEditComponent,

@@ -20,3 +20,7 @@ export class UserParams extends PaginationParams {
 export class LikesParams extends PaginationParams {
   predicate = 'Liked';
 }
+
+export class MessageParams extends PaginationParams {
+  container = 'Unread';
+}

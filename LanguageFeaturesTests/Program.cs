@@ -25,13 +25,14 @@ namespace LanguageFeaturesTests
             //var d = DateTime.Now.Date;
             //Console.WriteLine(DateTime.Now.Date.Kind);
 
-            var date = new DateTime(2020, 2, 28);
-            var date_18 = date.AddYears(-18);
 
-            Console.WriteLine(date);
-            Console.WriteLine(date_18);
+            var timeSpan = new TimeSpan(0, -420, 0);
+            var utcDate = DateTimeOffset.UtcNow;
+
+            var localDate = utcDate.ToOffset(-timeSpan);
 
 
+            Console.WriteLine();
         }
     }
 }

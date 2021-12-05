@@ -4,18 +4,19 @@ import { map } from 'rxjs/operators';
 import { UserToken } from '../_models/user-token';
 import { Observable, ReplaySubject } from 'rxjs';
 import { LoginModel } from '../_models/login-model';
-import { environment } from 'src/environments/environment';
+import { BaseService } from './base.service';
 
 @Injectable({
   providedIn: 'root',
 })
-export class AccountService {
-  private baseUrl = environment.apiUrl;
+export class AccountService extends BaseService {
   private currentUserSource = new ReplaySubject<UserToken>(1);
 
   currentUser$ = this.currentUserSource.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(http: HttpClient) {
+    super(http);
+  }
 
   login(model: LoginModel) {
     return this.chainPipeToLoginOrRegisterRequest(
