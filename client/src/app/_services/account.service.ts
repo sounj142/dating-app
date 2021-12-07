@@ -51,10 +51,22 @@ export class AccountService extends BaseService {
     return observable.pipe(
       map((user: UserToken) => {
         if (user) {
+          user.roles = [];
+          const rolesFromToken = this.getDecodedToken(user.token).role;
+          if (rolesFromToken) {
+            user.roles =
+              rolesFromToken instanceof Array
+                ? rolesFromToken
+                : [rolesFromToken];
+          }
           this.saveUserTokenToLocalStorage(user);
         }
         return user;
       })
     );
+  }
+
+  private getDecodedToken(token: string) {
+    return JSON.parse(atob(token.split('.')[1]));
   }
 }

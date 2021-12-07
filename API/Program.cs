@@ -7,6 +7,8 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Identity;
+using API.Entities;
 
 namespace API
 {
@@ -36,17 +38,19 @@ namespace API
             try
             {
                 using var dbContext = scope.ServiceProvider.GetService<DataContext>();
+                using var userManager = scope.ServiceProvider.GetService<UserManager<AppUser>>();
+                using var roleManager = scope.ServiceProvider.GetService<RoleManager<AppRole>>();
 
                 // run migrations
                 await dbContext.Database.MigrateAsync();
 
-                // seed data if the environment is Development
+                
                 var environment = scope.ServiceProvider.GetService<IWebHostEnvironment>();
-                if (environment.IsDevelopment())
-                {
-                    var seedData = new SeedData();
-                    await seedData.SeedUsers(dbContext);
-                }
+
+                // seed roles & users
+                var seedData = new SeedData();
+                await seedData.SeedRoles(roleManager);
+                await seedData.SeedUsers(userManager, environment.IsDevelopment());
             }
             catch (Exception ex)
             {

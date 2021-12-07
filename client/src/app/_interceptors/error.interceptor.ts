@@ -50,6 +50,7 @@ export class ErrorInterceptor implements HttpInterceptor {
   }
 
   private process400Error(error: HttpErrorResponse) {
+    console.log(error);
     if (error.error) {
       if (typeof error.error === 'string') {
         this.toastr.error(error.error, String(error.status));
@@ -66,6 +67,10 @@ export class ErrorInterceptor implements HttpInterceptor {
         throw modelStateErrors;
       } else if (error.error.title) {
         this.toastr.error(error.error.title, String(error.status));
+        return;
+      } else if (error.error instanceof Array && error.error.join) {
+        const msg = error.error.join('<br/>');
+        this.toastr.error(msg, String(error.status), { enableHtml: true });
         return;
       }
     }

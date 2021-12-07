@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { AdminPanelComponent } from './admin/admin-panel/admin-panel.component';
 import { NotFoundComponent } from './errors/not-found/not-found.component';
 import { ServerErrorComponent } from './errors/server-error/server-error.component';
 import { TestErrorsComponent } from './errors/test-errors/test-errors.component';
@@ -11,6 +12,7 @@ import { MemberListComponent } from './members/member-list/member-list.component
 import { MessagesComponent } from './messages/messages.component';
 import { RegisterComponent } from './register/register.component';
 import { MemberDetailedResolver } from './_resolvers/member-detailed.resolver';
+import { AdminGuard } from './_router-guards/admin.guard';
 import { AuthGuard } from './_router-guards/auth.guard';
 import { PreventUnsavedChangesGuard } from './_router-guards/prevent-unsaved-changes.guard';
 
@@ -30,6 +32,14 @@ const routes: Routes = [
       },
       { path: 'lists', component: ListsComponent },
       { path: 'messages', component: MessagesComponent },
+    ],
+  },
+  {
+    path: '',
+    runGuardsAndResolvers: 'always',
+    canActivate: [AdminGuard],
+    children: [
+      { path: 'admin', component: AdminPanelComponent },
     ],
   },
   { path: 'register', component: RegisterComponent },

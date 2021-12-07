@@ -4,4 +4,5 @@ export interface UserToken {
     photoUrl: string;
     knownAs: string;
     gender: string;
+    roles: string[];
 }
