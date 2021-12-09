@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { mergeMap, take } from 'rxjs/operators';
 import { PaginatedResult } from 'src/app/_models/pagination';
 import { User } from 'src/app/_models/user';
@@ -50,7 +50,7 @@ export class MemberListComponent implements OnInit {
           });
       }
       this.usersService.saveUserParams(this.userParams);
-      this.paginatedResult$ = this.usersService.getUsers(this.userParams);
+      this.paginatedResult$ = this.getUsersAndReGetIfPageIsWrong();
     } else {
       this.paginatedResult$ = this.accountService.currentUser$.pipe(
         take(1),
@@ -58,9 +58,27 @@ export class MemberListComponent implements OnInit {
           this.userToken = userToken;
           this.userParams = new UserParams(this.userToken);
           this.usersService.saveUserParams(this.userParams);
-          return this.usersService.getUsers(this.userParams);
+          return this.getUsersAndReGetIfPageIsWrong();
         })
       );
     }
+  }
+
+  private getUsersAndReGetIfPageIsWrong(): Observable<PaginatedResult<User>> {
+    return this.usersService.getUsers(this.userParams).pipe(
+      mergeMap((paginationData) => {
+        if (
+          paginationData.pagination.currentPage <=
+            paginationData.pagination.totalPages ||
+          !paginationData.pagination.totalPages
+        ) {
+          return of(paginationData);
+        } else {
+          // get data again if current page is greater than total pages
+          this.userParams.currentPage = paginationData.pagination.totalPages;
+          return this.usersService.getUsers(this.userParams);
+        }
+      })
+    );
   }
 }

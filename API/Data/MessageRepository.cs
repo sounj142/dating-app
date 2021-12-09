@@ -39,6 +39,12 @@ namespace API.Data
             return await _dataContext.Messages.FindAsync(id);
         }
 
+        public async Task<IList<Message>> GetMessages(IEnumerable<int> messageIds)
+        {
+            return await _dataContext.Messages.Where(message => messageIds.Contains(message.Id))
+                .ToListAsync();
+        }
+
         public async Task<PagedList<MessageDto>> GetMessagesForUser(MessageParams messageParams)
         {
             IQueryable<Message> query = _dataContext.Messages;
@@ -69,17 +75,6 @@ namespace API.Data
                 )
                 .OrderBy(u => u.MessageSent)
                 .ToListAsync();
-
-            var unreadMessages = messages.Where(m => m.DateRead == null && m.RecipientId == userId).ToList();
-            if (unreadMessages.Count > 0)
-            {
-                var now = _clientInformation.GetClientNow();
-                foreach (var message in unreadMessages)
-                {
-                    message.DateRead = now;
-                }
-                await _dataContext.SaveChangesAsync();
-            }
 
             return _mapper.Map<IList<MessageDto>>(messages);
         }

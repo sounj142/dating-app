@@ -5,10 +5,11 @@ import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { CacheItem } from '../_models/cache-item';
 import { PaginatedResult } from '../_models/pagination';
-import { User } from '../_models/user';
+import { PresenceTrackerData, User } from '../_models/user';
 import { UserLiked } from '../_models/user-liked';
 import { LikesParams, UserParams } from '../_models/user-params';
 import { BaseService } from './base.service';
+import { PresenceService } from './presence.service';
 
 @Injectable({
   providedIn: 'root',
@@ -17,8 +18,29 @@ export class UsersService extends BaseService {
   private memberCache = {};
   private cachedUserParams: UserParams = undefined;
 
-  constructor(http: HttpClient) {
+  constructor(http: HttpClient, private presenceService: PresenceService) {
     super(http);
+    this.trackUsersPresence();
+  }
+
+  private trackUsersPresence() {
+    this.presenceService.presenceTracker$.subscribe(
+      (trackerData: PresenceTrackerData) => {
+        for (const key in this.memberCache) {
+          const cacheItem: CacheItem<PaginatedResult<User>> =
+            this.memberCache[key];
+
+          if (this.isValidCachedItem(cacheItem)) {
+            const user = cacheItem.data.data.find(
+              (u) => u.userName === trackerData.userName
+            );
+            if (user) {
+              user.isOnline = trackerData.isOnline;
+            }
+          }
+        }
+      }
+    );
   }
 
   private getCacheKey(p: any) {

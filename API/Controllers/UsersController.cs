@@ -6,6 +6,7 @@ using API.Entities;
 using API.Extensions;
 using API.Helpers;
 using API.Interfaces;
+using API.SignalR;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -19,12 +20,15 @@ namespace API.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
         private readonly IPhotoService _photoService;
+        private readonly IPresenceTracker _presenceTracker;
 
-        public UsersController(IUserRepository userRepository, IMapper mapper, IPhotoService photoService)
+        public UsersController(IUserRepository userRepository, IMapper mapper,
+            IPhotoService photoService, IPresenceTracker presenceTracker)
         {
             _userRepository = userRepository;
             _mapper = mapper;
             _photoService = photoService;
+            _presenceTracker = presenceTracker;
         }
 
         [HttpGet]
@@ -36,16 +40,21 @@ namespace API.Controllers
 
             var users = await _userRepository.GetUsersAsync(userParams.CurrentPage, userParams.PageSize, currentUser.UserName,
                 userParams.Gender, userParams.MinAge, userParams.MaxAge, userParams.OrderBy);
-           
+
             Response.AddPaginationHeader(users);
-            return _mapper.Map<IList<UserDto>>(users);
+            var usersDto = _mapper.Map<List<UserDto>>(users);
+            usersDto.ForEach(u => u.IsOnline = _presenceTracker.IsOnline(u.UserName));
+
+            return usersDto;
         }
 
         [HttpGet("{userName}", Name = "GetUser")]
         public async Task<UserDto> GetUser(string userName)
         {
             var user = await _userRepository.GetUserByUserNameAsync(userName);
-            return _mapper.Map<UserDto>(user);
+            var userDto = _mapper.Map<UserDto>(user);
+            userDto.IsOnline = _presenceTracker.IsOnline(user.UserName);
+            return userDto;
         }
 
         [HttpPut]

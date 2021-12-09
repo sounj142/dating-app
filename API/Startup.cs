@@ -1,5 +1,6 @@
 using API.Extensions;
 using API.Middlewares;
+using API.SignalR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -26,6 +27,7 @@ namespace API
 
             services.AddControllers();
             services.AddCors();
+            services.AddSignalR();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "API", Version = "v1" });
@@ -48,7 +50,11 @@ namespace API
 
             if (env.IsDevelopment())
             {
-                app.UseCors(policy => policy.AllowAnyHeader().AllowAnyMethod().WithOrigins("https://localhost:4200"));
+                app.UseCors(policy => 
+                    policy.AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials()
+                        .WithOrigins("https://localhost:4200"));
             }
 
             app.UseMiddleware<DetectClientInformationMiddleware>();
@@ -60,6 +66,8 @@ namespace API
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapHub<PresenceHub>("hubs/presence");
+                endpoints.MapHub<MessageHub>("hubs/message");
                 endpoints.MapControllers();
             });
         }

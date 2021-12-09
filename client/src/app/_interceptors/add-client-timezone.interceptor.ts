@@ -6,6 +6,7 @@ import {
   HttpInterceptor,
 } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { getClientTimezoneOffset } from '../_fn/date-function';
 
 @Injectable()
 export class AddClientTimezoneInterceptor implements HttpInterceptor {
@@ -17,7 +18,7 @@ export class AddClientTimezoneInterceptor implements HttpInterceptor {
   ): Observable<HttpEvent<unknown>> {
     request = request.clone({
       setHeaders: {
-        ClientTimeZoneOffset: new Date().getTimezoneOffset().toString(),
+        ClientTimeZoneOffset: getClientTimezoneOffset().toString(),
       },
     });
     return next.handle(request);

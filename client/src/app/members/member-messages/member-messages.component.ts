@@ -1,5 +1,4 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { Observable } from 'rxjs';
 import { Message } from 'src/app/_models/message';
 import { User } from 'src/app/_models/user';
 import { MessageService } from 'src/app/_services/message.service';
@@ -18,6 +17,7 @@ export class MemberMessagesComponent implements OnInit {
   constructor(private messageService: MessageService) {}
 
   ngOnInit(): void {
+    console.log('MemberMessagesComponent init');
   }
 
   getPhotoUrl(message: Message) {
@@ -25,11 +25,10 @@ export class MemberMessagesComponent implements OnInit {
   }
 
   sendMessage() {
-    this.messageService
-      .sendMessage(this.user.userName, this.messageContent)
-      .subscribe((message) => {
-        this.messages.push(message);
-        this.messageContent = '';
-      });
+    this.messageService.sendMessage(this.user.userName, this.messageContent);
+  }
+
+  clearChatBox() {
+    this.messageContent = '';
   }
 }

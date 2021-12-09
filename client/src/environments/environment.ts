@@ -8,6 +8,7 @@ export const environment = {
   defaultUserPhoto: './assets/user.png',
   fakeDelayTime: 500,
   cacheTime: 10, // minutes
+  hubUrl: 'https://localhost:44312/hubs/',
 };
 
 /*

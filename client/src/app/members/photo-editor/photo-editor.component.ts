@@ -7,6 +7,7 @@ import { AccountService } from 'src/app/_services/account.service';
 import { ToastrService } from 'ngx-toastr';
 import { UsersService } from 'src/app/_services/users.service';
 import { Photo } from 'src/app/_models/photo';
+import { getClientTimezoneOffset } from 'src/app/_fn/date-function';
 
 @Component({
   selector: 'app-photo-editor',
@@ -44,7 +45,7 @@ export class PhotoEditorComponent implements OnInit {
       headers: [
         {
           name: 'ClientTimeZoneOffset',
-          value: new Date().getTimezoneOffset().toString(),
+          value: getClientTimezoneOffset().toString(),
         },
       ],
     });

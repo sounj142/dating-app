@@ -5,3 +5,7 @@ export function formatDateOnlyToString(date: Date): string {
 
   return `${year}-${month}-${day}`;
 }
+
+export function getClientTimezoneOffset(): number {
+  return new Date().getTimezoneOffset();
+}

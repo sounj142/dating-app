@@ -10,6 +10,8 @@ using System.Text;
 using API.Helpers;
 using API.Entities;
 using Microsoft.AspNetCore.Identity;
+using System.Threading.Tasks;
+using API.SignalR;
 
 namespace API.Extensions
 {
@@ -22,6 +24,7 @@ namespace API.Extensions
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
             });
             services.AddAutoMapper(typeof(AutoMapperProfiles).Assembly);
+            services.AddSingleton<IPresenceTracker, PresenceTracker>();
             services.AddScoped<LogUserActivityActionFilter>();
             services.AddScoped<ClientInformation>();
             services.AddScoped<ITokenService, TokenService>();
@@ -67,6 +70,22 @@ namespace API.Extensions
                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["TokenKey"])),
                        ValidateIssuer = false,
                        ValidateAudience = false
+                   };
+
+                   options.Events = new JwtBearerEvents
+                   {
+                       OnMessageReceived = context =>
+                       {
+                           if (context.Request.Path.StartsWithSegments("/hubs"))
+                           {
+                               var accessToken = context.Request.Query["access_token"];
+                               if (!string.IsNullOrEmpty(accessToken))
+                               {
+                                   context.Token = accessToken;
+                               }
+                           }
+                           return Task.CompletedTask;
+                       }
                    };
                });
 
