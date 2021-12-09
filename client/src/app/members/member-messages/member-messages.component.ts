@@ -1,4 +1,5 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, ViewChild } from '@angular/core';
+import { NgForm } from '@angular/forms';
 import { Message } from 'src/app/_models/message';
 import { User } from 'src/app/_models/user';
 import { MessageService } from 'src/app/_services/message.service';
@@ -11,24 +12,20 @@ import { environment } from 'src/environments/environment';
 })
 export class MemberMessagesComponent implements OnInit {
   @Input() user: User;
-  @Input() messages: Message[];
+  @ViewChild('messageForm') messageForm: NgForm;
   messageContent: string;
 
-  constructor(private messageService: MessageService) {}
+  constructor(public messageService: MessageService) {}
 
-  ngOnInit(): void {
-    console.log('MemberMessagesComponent init');
-  }
+  ngOnInit(): void {}
 
   getPhotoUrl(message: Message) {
     return message.senderPhotoUrl || environment.defaultUserPhoto;
   }
 
   sendMessage() {
-    this.messageService.sendMessage(this.user.userName, this.messageContent);
-  }
-
-  clearChatBox() {
-    this.messageContent = '';
+    this.messageService.sendMessage(this.user.userName, this.messageContent).then(() => {
+      this.messageForm.reset();
+    });
   }
 }

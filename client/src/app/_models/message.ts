@@ -14,18 +14,6 @@ export interface Message {
 export interface CreateMessageDto {
   recipientUserName: string;
   content: string;
-  clientTimezoneOffset: number;
-}
-
-export interface SendMessageResult {
-  succeeded: boolean;
-  error: string;
-  message: Message;
-}
-
-export interface MarkMessageAsReadDto {
-  messageIds: number[];
-  clientTimezoneOffset: number;
 }
 
 export interface DateReadDto {

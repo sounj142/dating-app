@@ -6,9 +6,9 @@ using API.Interfaces;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace API.SignalR
@@ -16,139 +16,175 @@ namespace API.SignalR
     [Authorize]
     public class MessageHub : Hub
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IUserRepository _userRepository;
+        private readonly IMessageRepository _messageRepository;
+        private readonly ClientInformation _clientInformation;
+        private readonly IMapper _mapper;
+        private readonly IHubContext<PresenceHub> _presenceHub;
+        private readonly IPresenceTracker _presenceTracker;
 
-        public MessageHub(IServiceProvider serviceProvider)
+        public MessageHub(IUserRepository userRepository, IMessageRepository messageRepository, 
+            ClientInformation clientInformation, IMapper mapper, IHubContext<PresenceHub> presenceHub, 
+            IPresenceTracker presenceTracker)
         {
-            _serviceProvider = serviceProvider;
+            _userRepository = userRepository;
+            _messageRepository = messageRepository;
+            _clientInformation = clientInformation;
+            _mapper = mapper;
+            _presenceHub = presenceHub;
+            _presenceTracker = presenceTracker;
+        }
+
+        private void InitializecCientInformation()
+        {
+            _clientInformation.SetTimeZoneOffset(int.Parse(Context.GetHttpContext().Request.Query["ClientTimezoneOffset"]));
         }
 
         public override async Task OnConnectedAsync()
         {
+            InitializecCientInformation();
+
             var userName = Context.User.GetUserName();
-            await Groups.AddToGroupAsync(Context.ConnectionId, userName);
+            var userId = Context.User.GetUserId();
+            var recipientUserName = Context.GetHttpContext().Request.Query["Recipient"].ToString();
+            
+            var recipient = await _userRepository.GetUserByUserNameAsync(recipientUserName);
+            if (recipient == null)
+            {
+                await Clients.Caller.SendAsync("SendServerErrorMessage", "Recipient not found");
+                return;
+            }
+
+            var groupName = GenerateGroupName(userName, recipient.UserName);
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+
+            await AddConnectionToGroup(groupName);
+
+            var messages = await _messageRepository.GetMessagesThread(userId, recipient.Id);
+            var readMessages = await _messageRepository.MarkUnreadMessagesAsRead(messages, userId, 
+                _clientInformation.GetClientNow());
+
+            await Clients.Caller.SendAsync("ReceiveMessageThread", _mapper.Map<List<MessageDto>>(messages));
+
+            if (readMessages.Any())
+            {
+                await Clients.OthersInGroup(groupName).SendAsync("MessagesIsRead",
+                    readMessages.Select(x => new DateReadDto
+                    {
+                        DateRead = x.DateRead,
+                        MessageId = x.Id
+                    }).ToList());
+            }
 
             await base.OnConnectedAsync();
         }
 
+        public override async Task OnDisconnectedAsync(Exception exception)
+        {
+            await RemoveConnectionFromGroup();
+            await base.OnDisconnectedAsync(exception);
+        }
+
         public async Task SendMessage(CreateMessageDto createMessageDto)
         {
-            int messageId;
-            using (var scope = _serviceProvider.CreateScope())
+            InitializecCientInformation();
+
+            var currentUser = await _userRepository.GetCurrentUserAsync(Context.User);
+            var recipient = await _userRepository.GetUserByUserNameAsync(createMessageDto.RecipientUserName);
+
+            if (recipient == null)
             {
-                var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-                var messageRepository = scope.ServiceProvider.GetRequiredService<IMessageRepository>();
-
-                var currentUser = await userRepository.GetCurrentUserAsync(Context.User);
-                var recipient = await userRepository.GetUserByUserNameAsync(createMessageDto.RecipientUserName);
-
-                var result = new SendMessageResult();
-
-                if (recipient == null)
-                {
-                    result.Error = "User not found";
-                    // send result to sender's client
-                    await Clients.Group(currentUser.UserName).SendAsync("SendMessageResult", result);
-                    return;
-                }
-
-                if (currentUser.Id == recipient.Id)
-                {
-                    result.Error = "You cannot send message to yourself!";
-                    // send result to sender's client
-                    await Clients.Group(currentUser.UserName).SendAsync("SendMessageResult", result);
-                    return;
-                }
-
-                var clientInformation = scope.ServiceProvider.GetRequiredService<ClientInformation>();
-                clientInformation.SetTimeZoneOffset(createMessageDto.ClientTimezoneOffset);
-
-                var now = clientInformation.GetClientNow();
-                var message = new Message
-                {
-                    Content = createMessageDto.Content,
-                    MessageSent = now,
-                    RecipientId = recipient.Id,
-                    RecipientUserName = recipient.UserName,
-                    SenderId = currentUser.Id,
-                    SenderUserName = currentUser.UserName,
-                };
-                messageRepository.AddMessage(message);
-
-                if (!await messageRepository.SaveAllAsync())
-                {
-                    result.Error = "Failed to store message into DB!";
-                    // send result to sender's client
-                    await Clients.Group(currentUser.UserName).SendAsync("SendMessageResult", result);
-                    return;
-                }
-
-                var mapper = scope.ServiceProvider.GetRequiredService<IMapper>();
-                result.Succeeded = true;
-                result.Message = mapper.Map<MessageDto>(message);
-
-                messageId = message.Id;
-
-                await Clients.Group(currentUser.UserName).SendAsync("SendMessageResult", result);
-
-                await Clients.Group(recipient.UserName).SendAsync("ReceivedMessage", result.Message);
+                await Clients.Caller.SendAsync("SendServerErrorMessage", "User not found");
+                return;
             }
 
-
-            // if after a delay time, recipient doesn't read message, we need to notify them
-
-            // rất tệ. Thao tác delay 5s này làm cho hàm sendmessage bị chặn phai client. User ko thể chat câu tiếp theo cho
-            // đến khi hết 5s. Nếu cài đặt lại nên cài lại theo cách của tác giả =]] (chương 17), tức là cần tạo hub connection
-            // dựa trên group, và khi người dùng vào tab "Mesage" của trandetail thì mới mở hub này
-            await Task.Delay(5000);
-
-            using (var scope = _serviceProvider.CreateScope())
+            if (currentUser.Id == recipient.Id)
             {
-                var messageRepository = scope.ServiceProvider.GetRequiredService<IMessageRepository>();
-                var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+                await Clients.Caller.SendAsync("SendServerErrorMessage", "You cannot send message to yourself!");
+                return;
+            }
 
-                var message = await messageRepository.GetMessage(messageId);
-                var user = await userRepository.GetUserByIdAsync(message.SenderId);
+            var message = new Message
+            {
+                Content = createMessageDto.Content,
+                MessageSent = _clientInformation.GetClientNow(),
+                RecipientId = recipient.Id,
+                RecipientUserName = recipient.UserName,
+                SenderId = currentUser.Id,
+                SenderUserName = currentUser.UserName,
+            };
+            var groupName = GenerateGroupName(currentUser.UserName, recipient.UserName);
+            var group = await _messageRepository.GetSignalRGroup(groupName);
 
-                if (message != null && message.DateRead == null)
+            bool recipientIsInChatGroup = 
+                group != null && group.Connections.Any(c => c.UserName == recipient.UserName);
+            if (recipientIsInChatGroup)
+            {
+                message.DateRead = _clientInformation.GetClientNow();
+            }
+
+            _messageRepository.AddMessage(message);
+
+            if (!await _messageRepository.SaveAllAsync())
+            {
+                await Clients.Caller.SendAsync("SendServerErrorMessage", "Failed to store message into DB!");
+                return;
+            }
+
+            await Clients.Group(groupName).SendAsync("ReceivedMessage", _mapper.Map<MessageDto>(message));
+
+            if (!recipientIsInChatGroup)
+            {
+                var recipientConnections = _presenceTracker.GetConnections(recipient.UserName);
+                if (recipientConnections.Any())
                 {
-                    await Clients.Group(message.RecipientUserName).SendAsync("MessageNotification",
-                        new { user.UserName, user.KnownAs });
+                    await _presenceHub.Clients.Clients(recipientConnections).SendAsync("NewMessageNotification",
+                        new { currentUser.UserName, currentUser.KnownAs });
                 }
             }
         }
 
-        public async Task MarkMessageAsRead(MarkMessageAsReadDto dto)
+        private string GenerateGroupName(string sender, string recipient)
         {
-            using var scope = _serviceProvider.CreateScope();
+            return string.Compare(sender, recipient, StringComparison.OrdinalIgnoreCase) < 0
+                ? $"{sender}-{recipient}"
+                : $"{recipient}-{sender}";
+        }
 
-            var messageRepository = scope.ServiceProvider.GetRequiredService<IMessageRepository>();
+        private async Task<SignalRGroup> AddConnectionToGroup(string groupName)
+        {
+            var group = await _messageRepository.GetSignalRGroup(groupName);
 
-            var currentUserId = Context.User.GetUserId();
-            var currentUserName = Context.User.GetUserName();
-            var messages = await messageRepository.GetMessages(dto.MessageIds);
-
-            var clientInformation = scope.ServiceProvider.GetRequiredService<ClientInformation>();
-            clientInformation.SetTimeZoneOffset(dto.ClientTimezoneOffset);
-            var now = clientInformation.GetClientNow();
-
-            var result = new List<DateReadDto>();
-            foreach (var message in messages)
+            if (group == null)
             {
-                if (message.RecipientId == currentUserId && message.DateRead == null && message.SenderId == messages[0].SenderId)
+                group = new SignalRGroup
                 {
-                    message.DateRead = now;
-                    result.Add(new DateReadDto { MessageId = message.Id, DateRead = message.DateRead });
-                }
+                    Name = groupName,
+                    Connections = new List<SignalRConnection>()
+                };
+
+                _messageRepository.AddSignalRGroup(group);
             }
 
-            if (result.Count > 0)
+            group.Connections.Add(new SignalRConnection
             {
-                await messageRepository.SaveAllAsync();
+                ConnectionId = Context.ConnectionId,
+                UserName = Context.User.GetUserName()
+            });
 
-                await Clients
-                    .Groups(new[] { currentUserName, messages[0].SenderUserName })
-                    .SendAsync("MessageIsRead", result);
+            if (!await _messageRepository.SaveAllAsync())
+                throw new HubException("Error when create SignalR Group");
+
+            return group;
+        }
+
+        private async Task RemoveConnectionFromGroup()
+        {
+            var connection = await _messageRepository.GetSignalRConnection(Context.ConnectionId);
+            if (connection != null)
+            {
+                _messageRepository.RemoveSignalRConnection(connection);
+                await _messageRepository.SaveAllAsync();
             }
         }
     }

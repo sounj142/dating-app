@@ -1,10 +1,13 @@
-﻿namespace API.SignalR
+﻿using System.Collections.Generic;
+
+namespace API.SignalR
 {
     public interface IPresenceTracker
     {
-        void AddConnection(string userName, string connectionId);
+        void UserConnected(string userName, string connectionId);
         bool IsOnline(string userName);
-        void RemoveConnection(string userName, string connectionId);
+        void UserDisconnected(string userName, string connectionId);
         int TotalConnections(string userName);
+        IList<string> GetConnections(string userName);
     }
 }

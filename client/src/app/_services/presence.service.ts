@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { ToastrService } from 'ngx-toastr';
 import { Subject } from 'rxjs';
+import { take } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { PresenceTrackerData } from '../_models/user';
 import { UserToken } from '../_models/user-token';
@@ -16,7 +18,11 @@ export class PresenceService {
   private presenceTrackerSource = new Subject<PresenceTrackerData>();
   presenceTracker$ = this.presenceTrackerSource.asObservable();
 
-  constructor(private toastr: ToastrService, accountService: AccountService) {
+  constructor(
+    accountService: AccountService,
+    private router: Router,
+    private toastr: ToastrService
+  ) {
     accountService.currentUser$.subscribe((user) => {
       if (user?.token) {
         this.createHubConnection(user);
@@ -41,6 +47,18 @@ export class PresenceService {
     this.hubConnection.on('UserIsOffline', (userName) => {
       this.presenceTrackerSource.next({ userName, isOnline: false });
     });
+
+    this.hubConnection.on(
+      'NewMessageNotification',
+      (data: { userName: string; knownAs: string }) => {
+        this.toastr
+          .info(`${data.knownAs} has sent you a new message`)
+          .onTap.pipe(take(1))
+          .subscribe(() =>
+            this.router.navigateByUrl(`/members/${data.userName}?tab=3`)
+          );
+      }
+    );
 
     this.hubConnection.start().catch((error) => {
       console.log(error);

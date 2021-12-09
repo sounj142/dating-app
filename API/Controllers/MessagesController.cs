@@ -32,13 +32,6 @@ namespace API.Controllers
             return messages;
         }
 
-        [HttpGet("thread/{userId}")]
-        public async Task<IList<MessageDto>> GetMessagesThread(int userId)
-        {
-            var messages = await _messageRepository.GetMessagesThread(User.GetUserId(), userId);
-            return messages;
-        }
-
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteMessage(int id)
         {

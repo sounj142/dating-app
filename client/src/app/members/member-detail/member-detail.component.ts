@@ -14,12 +14,11 @@ import {
 import { TabDirective, TabsetComponent } from 'ngx-bootstrap/tabs';
 import { from, Subscription } from 'rxjs';
 import { delay } from 'rxjs/operators';
-import { DateReadDto, Message } from 'src/app/_models/message';
 import { PresenceTrackerData, User } from 'src/app/_models/user';
+import { AccountService } from 'src/app/_services/account.service';
 import { MessageService } from 'src/app/_services/message.service';
 import { PresenceService } from 'src/app/_services/presence.service';
 import { environment } from 'src/environments/environment';
-import { MemberMessagesComponent } from '../member-messages/member-messages.component';
 
 @Component({
   selector: 'app-member-detail',
@@ -30,23 +29,18 @@ export class MemberDetailComponent
   implements OnInit, OnDestroy, AfterViewChecked
 {
   private trackerSubscription: Subscription;
-  private messageSubscription: Subscription;
-  private readMessageSubscription: Subscription;
   @ViewChild('memberTabs') memberTabs: TabsetComponent;
-  @ViewChild('memberMessagesComponent')
-  memberMessagesComponent: MemberMessagesComponent;
   activeTab: TabDirective;
   user: User;
   galleryOptions: NgxGalleryOptions[];
   galleryImages: NgxGalleryImage[];
-  messages: Message[] = [];
   initializedTab: boolean = false;
-  haventGetMessages: boolean = true;
 
   constructor(
     private route: ActivatedRoute,
     private messageService: MessageService,
     private presenceService: PresenceService,
+    private accountService: AccountService,
     router: Router
   ) {
     router.routeReuseStrategy.shouldReuseRoute = () => false;
@@ -88,40 +82,11 @@ export class MemberDetailComponent
         }
       }
     );
-
-    this.messageSubscription =
-      this.messageService.messagesObservable$.subscribe((message: Message) => {
-        if (
-          message.senderId === this.user.id ||
-          message.recipientId === this.user.id
-        ) {
-          this.messages.push(message);
-
-          if (message.recipientId === this.user.id) {
-            this.memberMessagesComponent.clearChatBox();
-          } else {
-            if (!message.dateRead && this.activeTabIsMessagesTab()) {
-              this.messageService.markMessageAsRead([message.id]);
-            }
-          }
-        }
-      });
-
-    this.readMessageSubscription =
-      this.messageService.readMessageObservable$.subscribe(
-        (dto: DateReadDto[]) => {
-          for (const item of dto) {
-            const msg = this.messages.find((m) => m.id === item.messageId);
-            if (msg) msg.dateRead = item.dateRead;
-          }
-        }
-      );
   }
 
   ngOnDestroy(): void {
     this.trackerSubscription.unsubscribe();
-    this.messageSubscription.unsubscribe();
-    this.readMessageSubscription.unsubscribe();
+    this.messageService.stopHubConnection();
   }
 
   selectInitialTabUsingQueryParams() {
@@ -153,37 +118,18 @@ export class MemberDetailComponent
   onTabActivated(tab: TabDirective) {
     this.activeTab = tab;
     if (this.activeTabIsMessagesTab()) {
-      if (this.haventGetMessages) {
-        this.haventGetMessages = false;
-        this.loadMessages();
-      } else {
-        this.markUnreadMessagesAsRead();
-      }
+      this.accountService.currentUser$.subscribe((userToken) => {
+        if (userToken?.token) {
+          this.messageService.createHubConnection(userToken, this.user.userName);
+        }
+      });
+    } else {
+      this.messageService.stopHubConnection();
     }
   }
 
   activeTabIsMessagesTab() {
     return this.activeTab.heading === 'Messages';
-  }
-
-  loadMessages() {
-    this.messageService
-      .getMessagesThread(this.user.id)
-      .subscribe((messages) => {
-        this.messages = messages;
-
-        this.markUnreadMessagesAsRead();
-      });
-  }
-
-  markUnreadMessagesAsRead() {
-    const unreadMessageIds = this.messages
-      .filter((m) => !m.dateRead && m.senderId === this.user.id)
-      .map((m) => m.id);
-
-    if (unreadMessageIds.length) {
-      this.messageService.markMessageAsRead(unreadMessageIds);
-    }
   }
 
   selectTab(tabId: number) {

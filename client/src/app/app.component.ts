@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { AccountService } from './_services/account.service';
-import { MessageService } from './_services/message.service';
 import { PresenceService } from './_services/presence.service';
 
 @Component({
@@ -11,11 +10,7 @@ import { PresenceService } from './_services/presence.service';
 export class AppComponent implements OnInit {
   title = 'My Dating App';
 
-  constructor(
-    private accountService: AccountService,
-    _p: PresenceService,
-    _m: MessageService
-  ) {}
+  constructor(private accountService: AccountService, _: PresenceService) {}
 
   ngOnInit(): void {
     this.accountService.getCurrentUserFromStorage();

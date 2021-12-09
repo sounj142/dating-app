@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace API.SignalR
 {
@@ -8,7 +9,7 @@ namespace API.SignalR
         private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, bool>> _onlineUsers
             = new ConcurrentDictionary<string, ConcurrentDictionary<string, bool>>();
 
-        public void AddConnection(string userName, string connectionId)
+        public void UserConnected(string userName, string connectionId)
         {
             _onlineUsers.AddOrUpdate(userName,
                 new ConcurrentDictionary<string, bool>(new[] { new KeyValuePair<string, bool>(connectionId, true) }),
@@ -19,7 +20,7 @@ namespace API.SignalR
             });
         }
 
-        public void RemoveConnection(string userName, string connectionId)
+        public void UserDisconnected(string userName, string connectionId)
         {
             if (_onlineUsers.TryGetValue(userName, out var bag))
             {
@@ -40,6 +41,15 @@ namespace API.SignalR
             }
 
             return 0;
+        }
+
+        public IList<string> GetConnections(string userName)
+        {
+            if (_onlineUsers.TryGetValue(userName, out var bag))
+            {
+                return bag.Keys.ToList();
+            }
+            return new List<string>();
         }
     }
 }

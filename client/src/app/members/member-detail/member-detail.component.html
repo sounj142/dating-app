@@ -7,7 +7,6 @@
         class="card-img-top img-thumbnail"
       />
       <div class="card-body">
-
         <div class="mb-2" *ngIf="user.isOnline">
           <i class="fa fa-user-circle text-success"></i> Online now
         </div>
@@ -31,12 +30,13 @@
           <strong>Member since: </strong>
           <p>{{ user.created | date: "longDate" }}</p>
         </div>
-
       </div>
       <div class="card-footer">
         <div class="btn-group d-flex">
           <button class="btn btn-primary">Like</button>
-          <button class="btn btn-success" (click)="selectTab(3)">Message</button>
+          <button class="btn btn-success" (click)="selectTab(3)">
+            Message
+          </button>
         </div>
       </div>
     </div>
@@ -65,11 +65,7 @@
         ></ngx-gallery>
       </tab>
       <tab heading="Messages" (selectTab)="onTabActivated($event)">
-        <app-member-messages
-          [user]="user"
-          [messages]="messages"
-          #memberMessagesComponent
-        ></app-member-messages>
+        <app-member-messages [user]="user"></app-member-messages>
       </tab>
     </tabset>
   </div>

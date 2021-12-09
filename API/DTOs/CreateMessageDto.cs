@@ -6,7 +6,6 @@ namespace API.DTOs
     {
         public string RecipientUserName { get; set; }
         public string Content { get; set; }
-        public int ClientTimezoneOffset { get; set; }
     }
 
     public class SendMessageResult
