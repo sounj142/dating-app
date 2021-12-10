@@ -14,20 +14,18 @@ namespace API.Controllers
     [Authorize]
     public class LikesController : BaseApiController
     {
-        private readonly IUserRepository _userRepository;
-        private readonly ILikesRepository _likesRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public LikesController(IUserRepository userRepository, ILikesRepository likesRepository)
+        public LikesController(IUnitOfWork unitOfWork)
         {
-            _userRepository = userRepository;
-            _likesRepository = likesRepository;
+            _unitOfWork = unitOfWork;
         }
 
         [HttpPost("{userName}")]
         public async Task<ActionResult> AddLike(string userName)
         {
-            var sourceUser = await _likesRepository.GetCurrentUserAsync(User);
-            var likedUser = await _userRepository.GetUserByUserNameAsync(userName);
+            var sourceUser = await _unitOfWork.LikesRepository.GetCurrentUserAsync(User);
+            var likedUser = await _unitOfWork.UserRepository.GetUserByUserNameAsync(userName);
 
             if (likedUser == null)
                 return NotFound();
@@ -41,7 +39,7 @@ namespace API.Controllers
                 LikedUserId = likedUser.Id
             });
 
-            if (!await _userRepository.SaveAllAsync()) return BadRequest("Failed to like user");
+            if (!await _unitOfWork.Complete()) return BadRequest("Failed to like user");
 
             return Ok();
         }
@@ -51,7 +49,7 @@ namespace API.Controllers
         {
             likesParams.UserId = User.GetUserId();
 
-            var likes = await _likesRepository.GetUserLikes(likesParams);
+            var likes = await _unitOfWork.LikesRepository.GetUserLikes(likesParams);
             Response.AddPaginationHeader(likes);
             return likes;
         }

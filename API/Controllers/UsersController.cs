@@ -17,15 +17,15 @@ namespace API.Controllers
     [Authorize]
     public class UsersController : BaseApiController
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IPhotoService _photoService;
         private readonly IPresenceTracker _presenceTracker;
 
-        public UsersController(IUserRepository userRepository, IMapper mapper,
+        public UsersController(IUnitOfWork unitOfWork, IMapper mapper,
             IPhotoService photoService, IPresenceTracker presenceTracker)
         {
-            _userRepository = userRepository;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
             _photoService = photoService;
             _presenceTracker = presenceTracker;
@@ -34,11 +34,11 @@ namespace API.Controllers
         [HttpGet]
         public async Task<IList<UserDto>> GetUsers([FromQuery] UserParams userParams)
         {
-            var currentUser = await _userRepository.GetCurrentUserAsync(User);
+            var currentUser = await _unitOfWork.UserRepository.GetCurrentUserAsync(User);
             if (string.IsNullOrEmpty(userParams.Gender))
                 userParams.Gender = currentUser.Gender == "male" ? "female" : "male";
 
-            var users = await _userRepository.GetUsersAsync(userParams.CurrentPage, userParams.PageSize, currentUser.UserName,
+            var users = await _unitOfWork.UserRepository.GetUsersAsync(userParams.CurrentPage, userParams.PageSize, currentUser.UserName,
                 userParams.Gender, userParams.MinAge, userParams.MaxAge, userParams.OrderBy);
 
             Response.AddPaginationHeader(users);
@@ -51,7 +51,7 @@ namespace API.Controllers
         [HttpGet("{userName}", Name = "GetUser")]
         public async Task<UserDto> GetUser(string userName)
         {
-            var user = await _userRepository.GetUserByUserNameAsync(userName);
+            var user = await _unitOfWork.UserRepository.GetUserByUserNameAsync(userName);
             var userDto = _mapper.Map<UserDto>(user);
             userDto.IsOnline = _presenceTracker.IsOnline(user.UserName);
             return userDto;
@@ -60,12 +60,12 @@ namespace API.Controllers
         [HttpPut]
         public async Task<ActionResult> UpdateUser(UserUpdateDto userUpdateDto)
         {
-            var user = await _userRepository.GetCurrentUserAsync(User);
+            var user = await _unitOfWork.UserRepository.GetCurrentUserAsync(User);
 
             _mapper.Map(userUpdateDto, user);
-            _userRepository.Update(user);
+            _unitOfWork.UserRepository.Update(user);
 
-            if (!await _userRepository.SaveAllAsync()) return BadRequest("Failed to update user!");
+            if (!await _unitOfWork.Complete()) return BadRequest("Failed to update user!");
 
             return NoContent();
         }
@@ -78,7 +78,7 @@ namespace API.Controllers
             if (uploadResult.Error != null) return BadRequest(uploadResult.Error.Message);
             if (string.IsNullOrEmpty(uploadResult.PublicId)) return BadRequest("Failed to upload photo");
 
-            var user = await _userRepository.GetCurrentUserAsync(User);
+            var user = await _unitOfWork.UserRepository.GetCurrentUserAsync(User);
             var photo = new Photo
             {
                 PublicId = uploadResult.PublicId,
@@ -87,7 +87,7 @@ namespace API.Controllers
             };
             user.Photos.Add(photo);
 
-            if (!await _userRepository.SaveAllAsync()) return BadRequest("Problem adding photo!");
+            if (!await _unitOfWork.Complete()) return BadRequest("Problem adding photo!");
 
             return CreatedAtRoute("GetUser", new { user.UserName }, _mapper.Map<PhotoDto>(photo));
         }
@@ -95,7 +95,7 @@ namespace API.Controllers
         [HttpPut("set-main-photo/{photoId}")]
         public async Task<ActionResult> SetMainPhoto(int photoId)
         {
-            var user = await _userRepository.GetCurrentUserAsync(User);
+            var user = await _unitOfWork.UserRepository.GetCurrentUserAsync(User);
             var photo = user.Photos.FirstOrDefault(p => p.Id == photoId);
 
             if (photo == null) return BadRequest("Photo does not exist!");
@@ -108,7 +108,7 @@ namespace API.Controllers
                 }
             photo.IsMain = true;
 
-            if (!await _userRepository.SaveAllAsync()) return BadRequest("Failed to set main photo!");
+            if (!await _unitOfWork.Complete()) return BadRequest("Failed to set main photo!");
 
             return NoContent();
         }
@@ -116,7 +116,7 @@ namespace API.Controllers
         [HttpDelete("delete-photo/{photoId}")]
         public async Task<ActionResult> DeletePhoto(int photoId)
         {
-            var user = await _userRepository.GetCurrentUserAsync(User);
+            var user = await _unitOfWork.UserRepository.GetCurrentUserAsync(User);
             var photo = user.Photos.FirstOrDefault(p => p.Id == photoId);
 
             if (photo == null) return NotFound("Photo does not exist!");
@@ -133,7 +133,7 @@ namespace API.Controllers
 
             user.Photos.Remove(photo);
 
-            if (!await _userRepository.SaveAllAsync()) return BadRequest("Failed to delete photo!");
+            if (!await _unitOfWork.Complete()) return BadRequest("Failed to delete photo!");
 
             return Ok();
         }

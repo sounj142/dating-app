@@ -1,9 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
+import { take } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { Message } from '../_models/message';
 import { PaginatedResult } from '../_models/pagination';
 import { MessageParams } from '../_models/user-params';
+import { ConfirmService } from '../_services/confirm.service';
 import { MessageService } from '../_services/message.service';
 
 @Component({
@@ -15,7 +17,10 @@ export class MessagesComponent implements OnInit {
   paginatedResult$: Observable<PaginatedResult<Message>>;
   params = new MessageParams();
 
-  constructor(private messageService: MessageService) {}
+  constructor(
+    private messageService: MessageService,
+    private confirmService: ConfirmService
+  ) {}
 
   ngOnInit(): void {
     this.loadMessages();
@@ -44,9 +49,10 @@ export class MessagesComponent implements OnInit {
   }
 
   getPhotoUrl(message: Message) {
-    const photoUrl = this.params.container === 'Outbox'
-      ? message.recipientPhotoUrl
-      : message.senderPhotoUrl;
+    const photoUrl =
+      this.params.container === 'Outbox'
+        ? message.recipientPhotoUrl
+        : message.senderPhotoUrl;
     return photoUrl || environment.defaultUserPhoto;
   }
 
@@ -58,8 +64,15 @@ export class MessagesComponent implements OnInit {
 
   deleteMessage(event, message: Message) {
     event.stopPropagation();
-    this.messageService.deleteMessage(message.id).subscribe(() => {
-      this.loadMessages();
-    });
+    this.confirmService
+      .confirm('Are you sure you want to delete message?')
+      .pipe(take(1))
+      .subscribe((ok) => {
+        if (ok) {
+          this.messageService.deleteMessage(message.id).subscribe(() => {
+            this.loadMessages();
+          });
+        }
+      });
   }
 }

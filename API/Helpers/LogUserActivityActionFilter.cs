@@ -20,13 +20,13 @@ namespace API.Helpers
 
             if (!excutedContext.HttpContext.User.Identity.IsAuthenticated) return;
 
-            var userRepository = excutedContext.HttpContext.RequestServices.GetService<IUserRepository>();
+            var unitOfWork = excutedContext.HttpContext.RequestServices.GetService<IUnitOfWork>();
 
-            var user = await userRepository.GetCurrentUserAsync(excutedContext.HttpContext.User);
+            var user = await unitOfWork.UserRepository.GetCurrentUserAsync(excutedContext.HttpContext.User);
             user.LastActive = _clientInformation.GetClientNow();
-            userRepository.Update(user);
+            unitOfWork.UserRepository.Update(user);
 
-            await userRepository.SaveAllAsync();
+            await unitOfWork.Complete();
         }
     }
 }

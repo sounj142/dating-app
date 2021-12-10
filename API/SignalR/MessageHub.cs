@@ -16,19 +16,17 @@ namespace API.SignalR
     [Authorize]
     public class MessageHub : Hub
     {
-        private readonly IUserRepository _userRepository;
-        private readonly IMessageRepository _messageRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ClientInformation _clientInformation;
         private readonly IMapper _mapper;
         private readonly IHubContext<PresenceHub> _presenceHub;
         private readonly IPresenceTracker _presenceTracker;
 
-        public MessageHub(IUserRepository userRepository, IMessageRepository messageRepository, 
+        public MessageHub(IUnitOfWork unitOfWork, 
             ClientInformation clientInformation, IMapper mapper, IHubContext<PresenceHub> presenceHub, 
             IPresenceTracker presenceTracker)
         {
-            _userRepository = userRepository;
-            _messageRepository = messageRepository;
+            _unitOfWork = unitOfWork;
             _clientInformation = clientInformation;
             _mapper = mapper;
             _presenceHub = presenceHub;
@@ -48,7 +46,7 @@ namespace API.SignalR
             var userId = Context.User.GetUserId();
             var recipientUserName = Context.GetHttpContext().Request.Query["Recipient"].ToString();
             
-            var recipient = await _userRepository.GetUserByUserNameAsync(recipientUserName);
+            var recipient = await _unitOfWork.UserRepository.GetUserByUserNameAsync(recipientUserName);
             if (recipient == null)
             {
                 await Clients.Caller.SendAsync("SendServerErrorMessage", "Recipient not found");
@@ -60,14 +58,14 @@ namespace API.SignalR
 
             await AddConnectionToGroup(groupName);
 
-            var messages = await _messageRepository.GetMessagesThread(userId, recipient.Id);
-            var readMessages = await _messageRepository.MarkUnreadMessagesAsRead(messages, userId, 
+            var messages = await _unitOfWork.MessageRepository.GetMessagesThread(userId, recipient.Id);
+            var readMessages = _unitOfWork.MessageRepository.MarkUnreadMessagesAsRead(messages, userId, 
                 _clientInformation.GetClientNow());
-
-            await Clients.Caller.SendAsync("ReceiveMessageThread", _mapper.Map<List<MessageDto>>(messages));
 
             if (readMessages.Any())
             {
+                await _unitOfWork.Complete();
+
                 await Clients.OthersInGroup(groupName).SendAsync("MessagesIsRead",
                     readMessages.Select(x => new DateReadDto
                     {
@@ -75,6 +73,8 @@ namespace API.SignalR
                         MessageId = x.Id
                     }).ToList());
             }
+
+            await Clients.Caller.SendAsync("ReceiveMessageThread", _mapper.Map<List<MessageDto>>(messages));
 
             await base.OnConnectedAsync();
         }
@@ -89,8 +89,8 @@ namespace API.SignalR
         {
             InitializecCientInformation();
 
-            var currentUser = await _userRepository.GetCurrentUserAsync(Context.User);
-            var recipient = await _userRepository.GetUserByUserNameAsync(createMessageDto.RecipientUserName);
+            var currentUser = await _unitOfWork.UserRepository.GetCurrentUserAsync(Context.User);
+            var recipient = await _unitOfWork.UserRepository.GetUserByUserNameAsync(createMessageDto.RecipientUserName);
 
             if (recipient == null)
             {
@@ -114,7 +114,7 @@ namespace API.SignalR
                 SenderUserName = currentUser.UserName,
             };
             var groupName = GenerateGroupName(currentUser.UserName, recipient.UserName);
-            var group = await _messageRepository.GetSignalRGroup(groupName);
+            var group = await _unitOfWork.MessageRepository.GetSignalRGroup(groupName);
 
             bool recipientIsInChatGroup = 
                 group != null && group.Connections.Any(c => c.UserName == recipient.UserName);
@@ -123,9 +123,9 @@ namespace API.SignalR
                 message.DateRead = _clientInformation.GetClientNow();
             }
 
-            _messageRepository.AddMessage(message);
+            _unitOfWork.MessageRepository.AddMessage(message);
 
-            if (!await _messageRepository.SaveAllAsync())
+            if (!await _unitOfWork.Complete())
             {
                 await Clients.Caller.SendAsync("SendServerErrorMessage", "Failed to store message into DB!");
                 return;
@@ -153,7 +153,7 @@ namespace API.SignalR
 
         private async Task<SignalRGroup> AddConnectionToGroup(string groupName)
         {
-            var group = await _messageRepository.GetSignalRGroup(groupName);
+            var group = await _unitOfWork.MessageRepository.GetSignalRGroup(groupName);
 
             if (group == null)
             {
@@ -163,7 +163,7 @@ namespace API.SignalR
                     Connections = new List<SignalRConnection>()
                 };
 
-                _messageRepository.AddSignalRGroup(group);
+                _unitOfWork.MessageRepository.AddSignalRGroup(group);
             }
 
             group.Connections.Add(new SignalRConnection
@@ -172,7 +172,7 @@ namespace API.SignalR
                 UserName = Context.User.GetUserName()
             });
 
-            if (!await _messageRepository.SaveAllAsync())
+            if (!await _unitOfWork.Complete())
                 throw new HubException("Error when create SignalR Group");
 
             return group;
@@ -180,11 +180,11 @@ namespace API.SignalR
 
         private async Task RemoveConnectionFromGroup()
         {
-            var connection = await _messageRepository.GetSignalRConnection(Context.ConnectionId);
+            var connection = await _unitOfWork.MessageRepository.GetSignalRConnection(Context.ConnectionId);
             if (connection != null)
             {
-                _messageRepository.RemoveSignalRConnection(connection);
-                await _messageRepository.SaveAllAsync();
+                _unitOfWork.MessageRepository.RemoveSignalRConnection(connection);
+                await _unitOfWork.Complete();
             }
         }
     }

@@ -9,7 +9,6 @@ namespace API.Interfaces
     {
         void Add(AppUser user);
         void Update(AppUser user);
-        Task<bool> SaveAllAsync();
         Task<PagedList<AppUser>> GetUsersAsync(int currentPage, int pageSize, string currentUserName, 
             string gender, int? minAge, int? maxAge, string orderBy);
         Task<AppUser> GetUserByIdAsync(int id);

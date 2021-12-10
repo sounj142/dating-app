@@ -19,7 +19,6 @@ namespace API.Interfaces
         Task<IList<Message>> GetMessages(IEnumerable<int> messageIds);
         Task<PagedList<MessageDto>> GetMessagesForUser(MessageParams messageParams);
         Task<IList<Message>> GetMessagesThread(int senderId, int recipientId);
-        Task<IList<Message>> MarkUnreadMessagesAsRead(IList<Message> messages, int userId, DateTimeOffset now);
-        Task<bool> SaveAllAsync();
+        IList<Message> MarkUnreadMessagesAsRead(IList<Message> messages, int userId, DateTimeOffset now);
     }
 }

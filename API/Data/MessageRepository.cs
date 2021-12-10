@@ -88,7 +88,7 @@ namespace API.Data
             return messages;
         }
 
-        public async Task<IList<Message>> MarkUnreadMessagesAsRead(IList<Message> messages, int userId, DateTimeOffset now)
+        public IList<Message> MarkUnreadMessagesAsRead(IList<Message> messages, int userId, DateTimeOffset now)
         {
             var unreadMessages = messages.Where(m => m.DateRead == null && m.RecipientId == userId).ToList();
             if (unreadMessages.Count > 0)
@@ -97,7 +97,6 @@ namespace API.Data
                 {
                     message.DateRead = now;
                 }
-                await _dataContext.SaveChangesAsync();
             }
 
             return unreadMessages;
@@ -113,11 +112,6 @@ namespace API.Data
             return await _dataContext.SignalRGroups
                 .Include(x => x.Connections)
                 .FirstOrDefaultAsync(x => x.Name == groupName);
-        }
-
-        public async Task<bool> SaveAllAsync()
-        {
-            return await _dataContext.SaveChangesAsync() > 0;
         }
     }
 }
