@@ -1,6 +1,7 @@
 ﻿using API.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
 using System.Text.Json;
@@ -10,11 +11,11 @@ namespace API.Data
 {
     public class SeedData
     {
-        public async Task SeedUsers(UserManager<AppUser> userManager, bool isDevelopment)
+        public async Task SeedUsers(UserManager<AppUser> userManager, bool isDevelopment, IConfiguration configuration)
         {
             if (await userManager.Users.AnyAsync()) return;
 
-            const string PASSWORD = "password";
+            var defaultUserPassword = configuration.GetValue<string>("DefaultUserPassword");
 
             // seed admin account
             var admin = new AppUser
@@ -27,7 +28,7 @@ namespace API.Data
                 Country = "Vietnam"
             };
 
-            await userManager.CreateAsync(admin, PASSWORD);
+            await userManager.CreateAsync(admin, defaultUserPassword);
             await userManager.AddToRolesAsync(admin, new[] { "Admin", "Moderator" });
 
             // only seed these test data if the environment is Development
@@ -38,7 +39,7 @@ namespace API.Data
 
                 foreach (var user in users)
                 {
-                    await userManager.CreateAsync(user, PASSWORD);
+                    await userManager.CreateAsync(user, defaultUserPassword);
                     await userManager.AddToRoleAsync(user, "Member");
                 }
             }

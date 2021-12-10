@@ -46,11 +46,12 @@ namespace API
 
                 
                 var environment = scope.ServiceProvider.GetService<IWebHostEnvironment>();
+                var configuration = scope.ServiceProvider.GetService<IConfiguration>();
 
                 // seed roles & users
                 var seedData = new SeedData();
                 await seedData.SeedRoles(roleManager);
-                await seedData.SeedUsers(userManager, environment.IsDevelopment());
+                await seedData.SeedUsers(userManager, environment.IsDevelopment(), configuration);
             }
             catch (Exception ex)
             {
