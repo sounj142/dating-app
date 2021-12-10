@@ -34,7 +34,7 @@ namespace API.Data
 
         public async Task<AppUser> GetUserByUserNameAsync(string userName, bool onlyGetApprovedPhotos)
         {
-            return await UsersIncludedProps(onlyGetApprovedPhotos).FirstOrDefaultAsync(user => user.UserName == userName);
+            return await UsersIncludedProps(onlyGetApprovedPhotos).FirstOrDefaultAsync(user => user.UserName.ToLower() == userName.ToLower());
         }
 
         public async Task<AppUser> GetCurrentUserAsync(ClaimsPrincipal claimsPrincipal, bool onlyGetApprovedPhotos)
@@ -47,7 +47,7 @@ namespace API.Data
             string gender, int? minAge, int? maxAge, string orderBy, bool onlyGetApprovedPhotos)
         {
             var query = UsersIncludedProps(onlyGetApprovedPhotos)
-                .Where(u => u.UserName != currentUserName)
+                .Where(u => u.UserName.ToLower() != currentUserName.ToLower())
                 .Where(u => u.Gender == gender);
 
             var today = DateTimeExtensions.TodayStandardTimezone();
