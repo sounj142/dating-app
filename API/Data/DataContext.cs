@@ -13,6 +13,7 @@ namespace API.Data
         public DbSet<UserLike> Likes { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<SignalRGroup> SignalRGroups { get; set; }
+        public DbSet<Photo> Photos { get; set; }
         public DbSet<SignalRConnection> SignalRConnections { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

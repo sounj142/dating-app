@@ -46,7 +46,7 @@ namespace API.SignalR
             var userId = Context.User.GetUserId();
             var recipientUserName = Context.GetHttpContext().Request.Query["Recipient"].ToString();
             
-            var recipient = await _unitOfWork.UserRepository.GetUserByUserNameAsync(recipientUserName);
+            var recipient = await _unitOfWork.UserRepository.GetUserByUserNameAsync(recipientUserName, onlyGetApprovedPhotos: true);
             if (recipient == null)
             {
                 await Clients.Caller.SendAsync("SendServerErrorMessage", "Recipient not found");
@@ -89,8 +89,8 @@ namespace API.SignalR
         {
             InitializecCientInformation();
 
-            var currentUser = await _unitOfWork.UserRepository.GetCurrentUserAsync(Context.User);
-            var recipient = await _unitOfWork.UserRepository.GetUserByUserNameAsync(createMessageDto.RecipientUserName);
+            var currentUser = await _unitOfWork.UserRepository.GetCurrentUserAsync(Context.User, onlyGetApprovedPhotos: true);
+            var recipient = await _unitOfWork.UserRepository.GetUserByUserNameAsync(createMessageDto.RecipientUserName, onlyGetApprovedPhotos: true);
 
             if (recipient == null)
             {

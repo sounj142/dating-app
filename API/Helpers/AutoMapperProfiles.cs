@@ -13,7 +13,7 @@ namespace API.Helpers
         {
             CreateMap<AppUser, UserDto>()
                 .ForMember(dest => dest.PhotoUrl, 
-                    option => option.MapFrom((src, dest) => src.Photos?.FirstOrDefault(p => p.IsMain)?.Url))
+                    option => option.MapFrom((src, dest) => src.Photos?.FirstOrDefault(p => p.IsMain && p.IsApproved)?.Url))
                 .ForMember(dest => dest.Age,
                     option => option.MapFrom(src => src.GetAge()));
 
@@ -28,7 +28,7 @@ namespace API.Helpers
 
             CreateMap<AppUser, LikeDto>()
                 .ForMember(dest => dest.PhotoUrl,
-                    option => option.MapFrom(src => src.Photos.FirstOrDefault(p => p.IsMain).Url))
+                    option => option.MapFrom(src => src.Photos.FirstOrDefault(p => p.IsMain && p.IsApproved).Url))
                 .ForMember(dest => dest.Age,
                     option => option.MapFrom(src => src.DateOfBirth.CalculateAge()))
                 .ForMember(dest => dest.UserId,
@@ -36,10 +36,9 @@ namespace API.Helpers
 
             CreateMap<Message, MessageDto>()
                 .ForMember(dest => dest.SenderPhotoUrl,
-                    option => option.MapFrom(src => src.Sender.Photos.FirstOrDefault(p => p.IsMain).Url))
+                    option => option.MapFrom(src => src.Sender.Photos.FirstOrDefault(p => p.IsMain && p.IsApproved).Url))
                 .ForMember(dest => dest.RecipientPhotoUrl,
-                    option => option.MapFrom(src => src.Recipient.Photos.FirstOrDefault(p => p.IsMain).Url));
-
+                    option => option.MapFrom(src => src.Recipient.Photos.FirstOrDefault(p => p.IsMain && p.IsApproved).Url));
         }
     }
 }

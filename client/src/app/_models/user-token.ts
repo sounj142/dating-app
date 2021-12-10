@@ -6,3 +6,9 @@ export interface UserToken {
     gender: string;
     roles: string[];
 }
+
+export interface UserUpdateNoticationData {
+    photoUrl: string;
+    knownAs: string;
+    gender: string;
+}

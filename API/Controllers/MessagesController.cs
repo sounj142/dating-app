@@ -33,7 +33,7 @@ namespace API.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteMessage(int id)
         {
-            var user = await _unitOfWork.UserRepository.GetCurrentUserAsync(User);
+            var user = await _unitOfWork.UserRepository.GetCurrentUserAsync(User, onlyGetApprovedPhotos: true);
 
             var message = await _unitOfWork.MessageRepository.GetMessage(id);
 

@@ -1,6 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { UserAndRolesInfo } from '../_models/user-and-role-info';
+import {
+  PhotoForAdminFeatureDto,
+  UserAndRolesInfo,
+} from '../_models/user-and-role-info';
 import { BaseService } from './base.service';
 
 @Injectable({
@@ -22,5 +25,19 @@ export class AdminService extends BaseService {
       userName,
       roles,
     });
+  }
+
+  getPhotosToModerates() {
+    return this.http.get<PhotoForAdminFeatureDto[]>(
+      `${this.baseUrl}admin/photos-to-moderate`
+    );
+  }
+
+  approvePhoto(id: number) {
+    return this.http.put(`${this.baseUrl}admin/approve-photo/${id}`, undefined);
+  }
+
+  rejectPhoto(id: number) {
+    return this.http.put(`${this.baseUrl}admin/reject-photo/${id}`, undefined);
   }
 }

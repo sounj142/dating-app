@@ -58,7 +58,7 @@ namespace API.Data
             return await PagedList<LikeDto>.CreateAsync(likesQuery, likesParams.CurrentPage, likesParams.PageSize);
         }
 
-        public async Task<AppUser> GetUserWithLikes(int userId)
+        private async Task<AppUser> GetUserWithLikes(int userId)
         {
             return await _dataContext.Users
                 .Include(u => u.LikedUsers)

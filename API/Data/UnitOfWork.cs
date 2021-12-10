@@ -1,8 +1,5 @@
 ﻿using API.Interfaces;
 using AutoMapper;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace API.Data
@@ -24,6 +21,9 @@ namespace API.Data
         public IMessageRepository MessageRepository => _messageRepository ?? (_messageRepository = new MessageRepository(_dataContext, _mapper));
         private ILikesRepository _likesRepository;
         public ILikesRepository LikesRepository => _likesRepository ?? (_likesRepository = new LikesRepository(_dataContext, _mapper));
+
+        private IPhotoRepository _photoRepository;
+        public IPhotoRepository PhotoRepository => _photoRepository ?? (_photoRepository = new PhotoRepository(_dataContext));
 
         public async Task<bool> Complete()
         {

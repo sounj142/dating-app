@@ -22,7 +22,7 @@ namespace API.Helpers
 
             var unitOfWork = excutedContext.HttpContext.RequestServices.GetService<IUnitOfWork>();
 
-            var user = await unitOfWork.UserRepository.GetCurrentUserAsync(excutedContext.HttpContext.User);
+            var user = await unitOfWork.UserRepository.GetCurrentUserAsync(excutedContext.HttpContext.User, onlyGetApprovedPhotos: true);
             user.LastActive = _clientInformation.GetClientNow();
             unitOfWork.UserRepository.Update(user);
 

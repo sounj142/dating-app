@@ -2,11 +2,16 @@
 using System.Linq;
 using System.Threading.Tasks;
 using API.Data;
+using API.DTOs;
 using API.DTOs.Admins;
 using API.Entities;
+using API.Extensions;
+using API.Interfaces;
+using API.SignalR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers
@@ -15,11 +20,21 @@ namespace API.Controllers
     {
         private readonly DataContext _dataContext;
         private readonly UserManager<AppUser> _userManager;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IPhotoService _photoService;
+        private readonly IPresenceTracker _presenceTracker;
+        private readonly IHubContext<PresenceHub> _presenceHub;
 
-        public AdminController(DataContext dataContext, UserManager<AppUser> userManager)
+        public AdminController(DataContext dataContext, UserManager<AppUser> userManager, 
+            IUnitOfWork unitOfWork, IPhotoService photoService, IPresenceTracker presenceTracker,
+            IHubContext<PresenceHub> presenceHub)
         {
             _dataContext = dataContext;
             _userManager = userManager;
+            _unitOfWork = unitOfWork;
+            _photoService = photoService;
+            _presenceTracker = presenceTracker;
+            _presenceHub = presenceHub;
         }
 
         [Authorize(Policy = "RequireAdminRole")]
@@ -91,9 +106,63 @@ namespace API.Controllers
 
         [Authorize(Policy = "RequireModerateRole")]
         [HttpGet("photos-to-moderate")]
-        public ActionResult GetPhotosToModerates()
+        public async Task<IList<PhotoForAdminFeatureDto>> GetPhotosToModerates()
         {
-            return Ok("Moderate and admin can see it!");
+            return await _unitOfWork.PhotoRepository.GetPhotosToModerates();
+        }
+
+        [Authorize(Policy = "RequireModerateRole")]
+        [HttpPut("approve-photo/{photoId}")]
+        public async Task<ActionResult> ApprovePhoto(int photoId)
+        {
+            var photo = await _unitOfWork.PhotoRepository.GetPhotoById(photoId);
+
+            if (photo == null) return NotFound();
+            if (photo.IsApproved) return BadRequest("Photo has been already approved");
+
+            // set main photo if needed
+            var user = await _unitOfWork.UserRepository.GetUserByIdAsync(photo.AppUserId, onlyGetApprovedPhotos: false);
+            photo.IsMain = !user.Photos.Any(p => p.IsMainPhoto());
+            photo.IsApproved = true;
+
+            if (photo.IsMain)
+            {
+                var recipientConnections = _presenceTracker.GetConnections(user.UserName);
+                if (recipientConnections.Any())
+                {
+                    await _presenceHub.Clients.Clients(recipientConnections).SendAsync("UserInfoChanged",
+                        new UserUpdateNoticationData(photoUrl: photo.Url, knownAs: user.KnownAs, gender: user.Gender));
+                }
+            }
+
+            if (!await _unitOfWork.Complete()) return BadRequest("Failed to approve photo!");
+
+            return Ok();
+        }
+
+        [Authorize(Policy = "RequireModerateRole")]
+        [HttpPut("reject-photo/{photoId}")]
+        public async Task<ActionResult> RejectPhoto(int photoId)
+        {
+            var photo = await _unitOfWork.PhotoRepository.GetPhotoById(photoId);
+
+            if (photo == null) return NotFound();
+            if (photo.IsApproved) return BadRequest("Photo has been already approved");
+
+            if (!string.IsNullOrEmpty(photo.PublicId))
+            {
+                var deleteResult = await _photoService.DeletePhotoAsync(photo.PublicId);
+                if (deleteResult.Error != null)
+                {
+                    return BadRequest(deleteResult.Error.Message);
+                }
+            }
+
+            _unitOfWork.PhotoRepository.DeletePhoto(photo);
+
+            if (!await _unitOfWork.Complete()) return BadRequest("Failed to delete photo!");
+
+            return Ok();
         }
     }
 }

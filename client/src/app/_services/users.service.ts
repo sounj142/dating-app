@@ -107,6 +107,10 @@ export class UsersService extends BaseService {
     return this.http.get<User>(`${this.baseUrl}users/${userName}`);
   }
 
+  getUserForEdit() {
+    return this.http.get<User>(`${this.baseUrl}users/for-edit`);
+  }
+
   updateUser(user: User) {
     return this.http.put(`${this.baseUrl}users`, user);
   }

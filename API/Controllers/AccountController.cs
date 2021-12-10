@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using API.DTOs;
 using API.Entities;
+using API.Extensions;
 using API.Helpers;
 using API.Interfaces;
 using AutoMapper;
@@ -79,7 +80,7 @@ namespace API.Controllers
             {
                 UserName = user.UserName,
                 Token = await _tokenService.CreateToken(user),
-                PhotoUrl = user.Photos.FirstOrDefault(p => p.IsMain)?.Url,
+                PhotoUrl = user.Photos.FirstOrDefault(p => p.IsMainPhoto())?.Url,
                 KnownAs = user.KnownAs,
                 Gender = user.Gender,
             };

@@ -1,8 +1,10 @@
-﻿using API.Entities;
+﻿using API.DTOs;
+using API.Entities;
 using API.Extensions;
 using API.Helpers;
 using API.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -13,33 +15,38 @@ namespace API.Data
     {
         private readonly DataContext _dataContext;
 
-        private IQueryable<AppUser> UsersIncludedProps => _dataContext.Users.Include(u => u.Photos);
+        private IQueryable<AppUser> UsersIncludedProps(bool onlyGetApprovedPhotos)
+        {
+            return onlyGetApprovedPhotos
+                ? _dataContext.Users.Include(u => u.Photos.Where(p => p.IsApproved))
+                : _dataContext.Users.Include(u => u.Photos);
+        }
 
         public UserRepository(DataContext dataContext)
         {
             _dataContext = dataContext;
         }
 
-        public async Task<AppUser> GetUserByIdAsync(int id)
+        public async Task<AppUser> GetUserByIdAsync(int id, bool onlyGetApprovedPhotos)
         {
-            return await UsersIncludedProps.FirstOrDefaultAsync(user => user.Id == id);
+            return await UsersIncludedProps(onlyGetApprovedPhotos).FirstOrDefaultAsync(user => user.Id == id);
         }
 
-        public async Task<AppUser> GetUserByUserNameAsync(string userName)
+        public async Task<AppUser> GetUserByUserNameAsync(string userName, bool onlyGetApprovedPhotos)
         {
-            return await UsersIncludedProps.FirstOrDefaultAsync(user => user.UserName == userName);
+            return await UsersIncludedProps(onlyGetApprovedPhotos).FirstOrDefaultAsync(user => user.UserName == userName);
         }
 
-        public async Task<AppUser> GetCurrentUserAsync(ClaimsPrincipal claimsPrincipal)
+        public async Task<AppUser> GetCurrentUserAsync(ClaimsPrincipal claimsPrincipal, bool onlyGetApprovedPhotos)
         {
             var userId = claimsPrincipal.GetUserId();
-            return await GetUserByIdAsync(userId);
+            return await GetUserByIdAsync(userId, onlyGetApprovedPhotos);
         }
 
-        public async Task<PagedList<AppUser>> GetUsersAsync(int currentPage, int pageSize, string currentUserName, 
-            string gender, int? minAge, int? maxAge, string orderBy)
+        public async Task<PagedList<AppUser>> GetUsersAsync(int currentPage, int pageSize, string currentUserName,
+            string gender, int? minAge, int? maxAge, string orderBy, bool onlyGetApprovedPhotos)
         {
-            var query = UsersIncludedProps
+            var query = UsersIncludedProps(onlyGetApprovedPhotos)
                 .Where(u => u.UserName != currentUserName)
                 .Where(u => u.Gender == gender);
 
@@ -67,11 +74,27 @@ namespace API.Data
         public void Update(AppUser user)
         {
             _dataContext.Entry(user).State = EntityState.Modified;
-        }  
-        
+        }
+
         public void Add(AppUser user)
         {
             _dataContext.Users.Add(user);
+        }
+
+        public async Task<IList<PhotoForAdminFeatureDto>> GetPhotosToModerates()
+        {
+            return await _dataContext.Set<Photo>()
+                .Where(p => !p.IsApproved)
+                .OrderBy(p => p.AppUser.UserName)
+                .Select(p => new PhotoForAdminFeatureDto
+                {
+                    Id = p.Id,
+                    KnownAs = p.AppUser.KnownAs,
+                    Url = p.Url,
+                    UserId = p.AppUser.Id,
+                    UserName = p.AppUser.UserName
+                })
+                .ToListAsync();
         }
     }
 }

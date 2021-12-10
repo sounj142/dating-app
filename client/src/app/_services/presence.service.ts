@@ -6,7 +6,7 @@ import { Subject } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { PresenceTrackerData } from '../_models/user';
-import { UserToken } from '../_models/user-token';
+import { UserToken, UserUpdateNoticationData } from '../_models/user-token';
 import { AccountService } from './account.service';
 
 @Injectable({
@@ -19,11 +19,11 @@ export class PresenceService {
   presenceTracker$ = this.presenceTrackerSource.asObservable();
 
   constructor(
-    accountService: AccountService,
+    private accountService: AccountService,
     private router: Router,
     private toastr: ToastrService
   ) {
-    accountService.currentUser$.subscribe((user) => {
+    accountService.currentUser$.pipe(take(1)).subscribe((user) => {
       if (user?.token) {
         this.createHubConnection(user);
       } else {
@@ -57,6 +57,17 @@ export class PresenceService {
           .subscribe(() =>
             this.router.navigateByUrl(`/members/${data.userName}?tab=3`)
           );
+      }
+    );
+
+    this.hubConnection.on(
+      'UserInfoChanged',
+      (data: UserUpdateNoticationData) => {
+        user.photoUrl = data.photoUrl;
+        user.knownAs = data.knownAs;
+        user.gender = data.gender;
+
+        this.accountService.saveUserTokenToLocalStorage(user);
       }
     );
 
