@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, Input, OnInit, ViewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { Message } from 'src/app/_models/message';
 import { User } from 'src/app/_models/user';
@@ -9,12 +15,13 @@ import { environment } from 'src/environments/environment';
   selector: 'app-member-messages',
   templateUrl: './member-messages.component.html',
   styleUrls: ['./member-messages.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MemberMessagesComponent implements OnInit {
   @Input() user: User;
   @ViewChild('messageForm') messageForm: NgForm;
   messageContent: string;
+  loading: boolean = false;
 
   constructor(public messageService: MessageService) {}
 
@@ -25,8 +32,12 @@ export class MemberMessagesComponent implements OnInit {
   }
 
   sendMessage() {
-    this.messageService.sendMessage(this.user.userName, this.messageContent).then(() => {
-      this.messageForm.reset();
-    });
+    this.loading = true;
+    this.messageService
+      .sendMessage(this.user.userName, this.messageContent)
+      .then(() => {
+        this.messageForm.reset();
+      })
+      .finally(() => (this.loading = false));
   }
 }

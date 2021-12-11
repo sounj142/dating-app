@@ -10,6 +10,7 @@ import { CreateMessageDto, DateReadDto, Message } from '../_models/message';
 import { MessageParams } from '../_models/user-params';
 import { UserToken } from '../_models/user-token';
 import { BaseService } from './base.service';
+import { BusyService } from './busy.service';
 
 @Injectable({
   providedIn: 'root',
@@ -20,7 +21,11 @@ export class MessageService extends BaseService {
   private messageThreadSource = new BehaviorSubject<Message[]>([]);
   messageThreadObservable$ = this.messageThreadSource.asObservable();
 
-  constructor(http: HttpClient, private toastr: ToastrService) {
+  constructor(
+    http: HttpClient,
+    private toastr: ToastrService,
+    private busyService: BusyService
+  ) {
     super(http);
   }
 
@@ -47,6 +52,7 @@ export class MessageService extends BaseService {
   }
 
   createHubConnection(user: UserToken, recipientUserName: string) {
+    this.busyService.busy();
     this.hubConnection = new HubConnectionBuilder()
       .withUrl(
         `${
@@ -83,14 +89,19 @@ export class MessageService extends BaseService {
       });
     });
 
-    this.hubConnection.start().catch((error) => {
-      console.log(error);
-      return error;
-    });
+    this.hubConnection
+      .start()
+      .catch((error) => {
+        console.log(error);
+        return error;
+      })
+      .finally(() => this.busyService.idle());
   }
 
   stopHubConnection() {
     if (this.hubConnection) {
+      this.messageThreadSource.next([]); // clean old messages
+
       this.hubConnection.stop().catch((error) => {
         console.log(error);
         return error;

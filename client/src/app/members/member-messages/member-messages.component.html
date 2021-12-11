@@ -1,5 +1,10 @@
 <div class="card">
-  <div class="card-body">
+  <div
+    class="card-body"
+    #scrollMe
+    [scrollTop]="scrollMe.scrollHeight"
+    style="overflow: scroll; height: 535px"
+  >
     <ng-container
       *ngIf="messageService.messageThreadObservable$ | async as messages"
     >
@@ -7,7 +12,7 @@
         No messages yet... Say hi by using the message box below
       </div>
 
-      <ul *ngIf="messages.length" class="chat" #scrollMe [scrollTop]="scrollMe.scrollHeight">
+      <ul *ngIf="messages.length" class="chat">
         <li *ngFor="let message of messages">
           <div>
             <span class="chat-img float-right">
@@ -62,11 +67,12 @@
         />
         <div class="input-group-append">
           <button
-            [disabled]="!messageForm.valid"
+            [disabled]="!messageForm.valid || loading"
             class="btn btn-primary"
             type="submit"
           >
             Send
+            <i class="fa fa-spinner fa-spin" *ngIf="loading"></i>
           </button>
         </div>
       </div>
